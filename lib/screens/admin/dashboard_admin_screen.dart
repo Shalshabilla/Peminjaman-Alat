@@ -1,205 +1,292 @@
 import 'package:flutter/material.dart';
-import '../../utils/colors.dart';
+import '../../services/dashboard_services.dart';
+import '../../widgets/admin_bottom_navbar.dart'; // sesuaikan path dengan benar
 
 class DashboardAdminScreen extends StatefulWidget {
   const DashboardAdminScreen({super.key});
 
   @override
-  State<DashboardAdminScreen> createState() => _DashboardAdminPageState();
+  State<DashboardAdminScreen> createState() => _DashboardAdminScreenState();
 }
 
-class _DashboardAdminPageState extends State<DashboardAdminScreen> {
-  int currentIndex = 0;
+class _DashboardAdminScreenState extends State<DashboardAdminScreen> {
+  final DashboardService _service = DashboardService();
+
+  int totalUser = 0;
+  int totalAlat = 0;
+  int peminjamanAktif = 0;
+  int dikembalikanHariIni = 0;
+
+  List<Map<String, dynamic>> recentActivities = [];
+
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final dashboardData = await _service.getDashboardData();
+      final activities = await _service.getRecentActivities(limit: 6);
+
+      if (!mounted) return;
+
+      setState(() {
+        totalUser = dashboardData['totalUser'] ?? 0;
+        totalAlat = dashboardData['totalAlat'] ?? 0;
+        peminjamanAktif = dashboardData['peminjamanAktif'] ?? 0;
+        dikembalikanHariIni = dashboardData['dikembalikanHariIni'] ?? 0;
+        recentActivities = activities;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Gagal memuat data: $e';
+      });
+    }
+  }
+
+  void _handleNavigation(int index) {
+    final currentRoute = ModalRoute.of(context)?.settings.name;
+    String? targetRoute;
+
+    switch (index) {
+      case 0:
+        targetRoute = '/admin/dashboard';
+        break;
+      case 1:
+        targetRoute = '/admin/data-master';
+        break;
+      case 2:
+        targetRoute = '/admin/transaksi';
+        break;
+      case 3:
+        targetRoute = '/admin/log-aktifitas';
+        break;
+      case 4:
+        targetRoute = '/admin/profil';
+        break;
+    }
+
+    if (targetRoute != null && currentRoute != targetRoute) {
+      Navigator.pushReplacementNamed(context, targetRoute);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
+    const navy = Color(0xFF0D47A1);
+    const navyShadow = Color(0xFF0D47A1);
 
-      /// 🔵 APP BAR
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F6FA),
       appBar: AppBar(
-        backgroundColor: AppColors.primary,
-        elevation: 0,
-        leading: const Icon(Icons.arrow_back, color: Colors.white),
+        toolbarHeight: 76,
         title: const Text(
           'Selamat Datang, Admin!',
           style: TextStyle(
             color: Colors.white,
+            fontSize: 20,
             fontWeight: FontWeight.w600,
           ),
         ),
+        backgroundColor: navy,
+        elevation: 0,
         actions: const [
           Padding(
             padding: EdgeInsets.only(right: 16),
-            child: Icon(Icons.notifications_none, color: Colors.white),
+            child: Icon(Icons.notifications, color: Colors.white, size: 28),
           ),
         ],
       ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _errorMessage != null
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.error_outline, size: 60, color: Colors.red),
+                      const SizedBox(height: 16),
+                      Text(_errorMessage!, style: const TextStyle(fontSize: 16)),
+                      const SizedBox(height: 24),
+                      ElevatedButton(
+                        onPressed: _loadData,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: navy,
+                          foregroundColor: Colors.white,
+                        ),
+                        child: const Text('Coba Lagi'),
+                      ),
+                    ],
+                  ),
+                )
+              : RefreshIndicator(
+                  onRefresh: _loadData,
+                  color: navy,
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Statistik Cards
+                          GridView.count(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            crossAxisCount: 2,
+                            crossAxisSpacing: 14,
+                            mainAxisSpacing: 14,
+                            childAspectRatio: 1.65, // ← nilai ini membuat card lebih tinggi & aman
+                            children: [
+                              _buildStatCard(Icons.person, 'Total User', '$totalUser', navy),
+                              _buildStatCard(Icons.work, 'Total Alat', '$totalAlat', navy),
+                              _buildStatCard(Icons.swap_horiz, 'Peminjaman Aktif', '$peminjamanAktif', navy),
+                              _buildStatCard(
+                                Icons.assignment_turned_in,
+                                'Dikembalikan\nHari Ini',
+                                '$dikembalikanHariIni',
+                                navy,
+                              ),
+                            ],
+                          ),
 
-      /// 🟢 BODY
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 20, 16, 80),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            /// 🧩 DASHBOARD CARD
-            GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 2,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
-              children: [
-                _dashboardCard(
-                  icon: Icons.person,
-                  title: 'Total User',
-                  value: '120',
+                          const SizedBox(height: 32),
+
+                          // Judul Log
+                          Text(
+                            'Log Aktifitas Terbaru',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: navy,
+                            ),
+                          ),
+
+                          const SizedBox(height: 12),
+
+                          // Card Log Aktifitas
+                          Container(
+                            constraints: BoxConstraints(
+                              minHeight: 100,
+                            ),
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: navy, width: 1.4),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: navyShadow.withOpacity(0.28),
+                                  blurRadius: 16,
+                                  spreadRadius: 3,
+                                  offset: const Offset(0, 6),
+                                ),
+                              ],
+                            ),
+                            child: recentActivities.isEmpty
+                                ? const Center(
+                                    child: Padding(
+                                      padding: EdgeInsets.symmetric(vertical: 32),
+                                      child: Text(
+                                        'Belum ada aktivitas terbaru',
+                                        style: TextStyle(
+                                          color: Colors.grey,
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                : Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: recentActivities.map((log) {
+                                      final timeAgo = _getTimeAgo(log['created_at']);
+                                      final nama = log['nama_user'] ?? 'Pengguna Tidak Diketahui';
+                                      final aktifitas = log['aktifitas'] ?? 'Aktivitas tidak diketahui';
+
+                                      return Column(
+                                        children: [
+                                          _buildLogItem('$nama $aktifitas', timeAgo, navy),
+                                          const Divider(height: 24, thickness: 0.8),
+                                        ],
+                                      );
+                                    }).toList(),
+                                  ),
+                          ),
+
+                          const SizedBox(height: 120), // ruang untuk bottom nav
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
-                _dashboardCard(
-                  icon: Icons.work,
-                  title: 'Total Alat',
-                  value: '87',
-                ),
-                _dashboardCard(
-                  icon: Icons.assignment,
-                  title: 'Peminjaman Aktif',
-                  value: '45',
-                ),
-                _dashboardCard(
-                  icon: Icons.assignment_turned_in,
-                  title: 'Dikembalikan\nHari Ini',
-                  value: '6',
-                ),
-              ],
-            ),
 
-            const SizedBox(height: 24),
-
-            /// 📝 JUDUL LOG
-            const Text(
-              'Log Aktivitas Terbaru',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: AppColors.primary,
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            /// 📦 BOX LOG
-            Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFFF9F9F9),
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 6,
-                    offset: Offset(0, 3),
-                  )
-                ],
-              ),
-              child: Column(
-                children: [
-                  _logItem(
-                    text: 'Shalshabilla mengajukan peminjaman',
-                    time: '2 menit lalu',
-                  ),
-                  _logItem(
-                    text: 'Petugas menyetujui peminjaman',
-                    time: '15 menit lalu',
-                  ),
-                  _logItem(
-                    text: 'Kania mengajukan peminjaman',
-                    time: '20 menit lalu',
-                  ),
-                  _logItem(
-                    text: 'Petugas menolak peminjaman',
-                    time: '20 menit lalu',
-                  ),
-                  _logItem(
-                    text: 'Icel mengembalikan barang',
-                    time: '20 menit lalu',
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-
-      /// 🔻 BOTTOM NAVBAR
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: currentIndex,
-        onTap: (i) => setState(() => currentIndex = i),
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: AppColors.primary,
-        selectedItemColor: Colors.white,
-        unselectedItemColor: Colors.white70,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: '',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.layers),
-            label: '',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.swap_horiz),
-            label: '',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.history),
-            label: '',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: '',
-          ),
-        ],
+      bottomNavigationBar: AdminBottomNavbar(
+        currentIndex: 0,
+        onTap: _handleNavigation,
       ),
     );
   }
 
-  /// 🔷 DASHBOARD CARD
-  Widget _dashboardCard({
-    required IconData icon,
-    required String title,
-    required String value,
-  }) {
+  Widget _buildStatCard(IconData icon, String title, String value, Color navy) {
     return Container(
+      clipBehavior: Clip.hardEdge, // mencegah elemen bocor keluar card
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: const [
+        border: Border.all(color: navy, width: 1.4),
+        boxShadow: [
           BoxShadow(
-            color: Colors.black12,
-            blurRadius: 6,
-            offset: Offset(0, 4),
-          )
+            color: navy.withOpacity(0.28),
+            blurRadius: 16,
+            spreadRadius: 3,
+            offset: const Offset(0, 6),
+          ),
         ],
       ),
-      padding: const EdgeInsets.all(16),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 40, color: AppColors.primary),
-          const SizedBox(height: 12),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontWeight: FontWeight.w600,
-              color: AppColors.primary,
+          Icon(icon, size: 40, color: navy),
+          const SizedBox(height: 8),
+
+          // Judul card: otomatis mengecil kalau terlalu panjang
+          Flexible(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12.0),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: navy,
+                    height: 1.15,
+                  ),
+                ),
+              ),
             ),
           ),
-          const SizedBox(height: 4),
+
+          const SizedBox(height: 8),
           Text(
             value,
             style: const TextStyle(
-              fontSize: 14,
-              color: AppColors.grey,
+              fontSize: 26,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF424242),
             ),
           ),
         ],
@@ -207,29 +294,52 @@ class _DashboardAdminPageState extends State<DashboardAdminScreen> {
     );
   }
 
-  /// 🔹 LOG ITEM
-  Widget _logItem({required String text, required String time}) {
+  Widget _buildLogItem(String title, String time, Color navy) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.history, size: 18, color: AppColors.primary),
-          const SizedBox(width: 12),
+          Icon(Icons.history, size: 22, color: navy),
+          const SizedBox(width: 14),
           Expanded(
             child: Text(
-              text,
-              style: const TextStyle(color: AppColors.primary),
+              title,
+              softWrap: true,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 2,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: navy,
+              ),
             ),
           ),
+          const SizedBox(width: 8),
           Text(
             time,
             style: const TextStyle(
-              fontSize: 12,
-              color: AppColors.grey,
+              fontSize: 13,
+              color: Colors.grey,
             ),
           ),
         ],
       ),
     );
+  }
+
+  String _getTimeAgo(String? timestamp) {
+    if (timestamp == null) return 'baru saja';
+    try {
+      final date = DateTime.parse(timestamp).toLocal();
+      final diff = DateTime.now().difference(date);
+
+      if (diff.inMinutes < 1) return 'baru saja';
+      if (diff.inMinutes < 60) return '${diff.inMinutes} menit lalu';
+      if (diff.inHours < 24) return '${diff.inHours} jam lalu';
+      return '${diff.inDays} hari lalu';
+    } catch (e) {
+      return 'waktu tidak diketahui';
+    }
   }
 }

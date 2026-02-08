@@ -1,32 +1,27 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'supabase_services.dart';
+import '../models/user_model.dart';
 
 class UserService {
-  final SupabaseClient _client = SupabaseService.client;
+  final SupabaseClient _supabase = Supabase.instance.client;
 
-  Future<String?> getUserRole(String userId) async {
-    final res = await _client
-        .from('users')
-        .select('role')
-        .eq('id', userId)
-        .maybeSingle();
-    return res?.data?['role'];
+  Future<List<AppUser>> getAllUsers({String? roleFilter}) async {
+    var query = _supabase.from('users').select();
+    if (roleFilter != null && roleFilter != 'Semua') {
+      query = query.eq('role', roleFilter);
+    }
+    final res = await query.order('created_at', ascending: false);
+    return res.map((e) => AppUser.fromJson(e)).toList();
   }
 
-  Future<List<Map<String, dynamic>>> getAllUsers() async {
-    final res = await _client.from('users').select().execute();
-    if (res.error != null || res.data == null) return [];
-    return List<Map<String, dynamic>>.from(res.data as List<dynamic>);
+  Future<void> createUser(AppUser user) async {
+    await _supabase.from('users').insert(user.toJson());
   }
 
-  Future<int> getTotalUsers() async {
-    final res = await _client.from('users').select('id').execute();
-    if (res.error != null || res.data == null) return 0;
-    return (res.data as List<dynamic>).length;
+  Future<void> updateUser(String id, AppUser user) async {
+    await _supabase.from('users').update(user.toJson()).eq('id', id);
   }
 
-  Future<void> deleteUser(String userId) async {
-    final res = await _client.from('users').delete().eq('id', userId).execute();
-    if (res.error != null) throw res.error!;
+  Future<void> deleteUser(String id) async {
+    await _supabase.from('users').delete().eq('id', id);
   }
 }

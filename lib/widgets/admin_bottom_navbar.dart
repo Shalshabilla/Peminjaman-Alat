@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../utils/colors.dart';
 
 class AdminBottomNavbar extends StatelessWidget {
   final int currentIndex;
@@ -13,34 +12,57 @@ class AdminBottomNavbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BottomNavigationBar(
-      currentIndex: currentIndex,
-      onTap: onTap,
-      selectedItemColor: AppColors.primary,
-      unselectedItemColor: Colors.grey,
-      type: BottomNavigationBarType.fixed,
-      items: const [
-        BottomNavigationBarItem(
-          icon: Icon(Icons.home),
-          label: 'Dashboard',
+    const navy = Color(0xFF0D47A1);
+
+    return Container(
+      decoration: BoxDecoration(
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.15),
+            blurRadius: 10,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: BottomNavigationBar(
+        currentIndex: currentIndex,
+        onTap: onTap,
+        backgroundColor: navy,
+        selectedItemColor: Colors.white,
+        unselectedItemColor: Colors.white70, // agak abu-abu terang
+        selectedLabelStyle: const TextStyle(
+          fontWeight: FontWeight.w600,
+          fontSize: 12,
         ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.storage),
-          label: 'Data Master',
+        unselectedLabelStyle: const TextStyle(
+          fontWeight: FontWeight.w500,
+          fontSize: 12,
         ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.swap_horiz),
-          label: 'Transaksi',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.history),
-          label: 'Log',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.person),
-          label: 'Profil',
-        ),
-      ],
+        type: BottomNavigationBarType.fixed,
+        elevation: 0,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Dashboard',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.storage),
+            label: 'Data Master',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.swap_horiz),
+            label: 'Transaksi',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.history),
+            label: 'Log',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Profil',
+          ),
+        ],
+      ),
     );
   }
 }

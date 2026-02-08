@@ -24,10 +24,21 @@ class MyApp extends StatelessWidget {
       title: 'SchooLend',
       theme: ThemeData(
         fontFamily: 'Poppins',
-        scaffoldBackgroundColor: Colors.white,
+        scaffoldBackgroundColor: const Color(0xFFF5F6FA),
+        useMaterial3: true,
       ),
       initialRoute: '/',
       routes: routes,
+      onUnknownRoute: (settings) {
+        return MaterialPageRoute(
+          builder:
+              (context) => Scaffold(
+                body: Center(
+                  child: Text('Route tidak ditemukan: ${settings.name}'),
+                ),
+              ),
+        );
+      },
     );
   }
 }

@@ -4,33 +4,29 @@ import 'supabase_services.dart';
 class AuthService {
   final SupabaseClient _client = SupabaseService.client;
 
-  User? get currentUser => _client.auth.currentUser;
+  Future<Map<String, dynamic>> login(
+    String email,
+    String password,
+  ) async {
+    // Langsung login dulu via auth
+    final authResponse = await _client.auth.signInWithPassword(
+      email: email,
+      password: password,
+    );
 
-  /// LOGIN + AMBIL ROLE
-  Future<Map<String, dynamic>?> login(String email, String password) async {
-    try {
-      final response = await _client.auth.signInWithPassword(
-        email: email,
-        password: password,
-      );
+    // Kalau sampai sini berarti login berhasil (tidak throw exception)
+    final userId = authResponse.user!.id;
 
-      if (response.user == null) return null;
+    // Ambil role dari tabel users (harusnya sudah bisa karena user sudah authenticated)
+    final userData = await _client
+        .from('users')
+        .select('role')
+        .eq('id', userId)
+        .single();
 
-      final profileRes = await _client
-          .from('users') // <- pakai tabel users
-          .select('role')
-          .eq('id', response.user!.id)
-          .maybeSingle();
-
-      final role = profileRes?.data?['role'] ?? 'peminjam';
-
-      return {
-        'user': response.user,
-        'role': role,
-      };
-    } catch (e) {
-      rethrow;
-    }
+    return {
+      'role': userData['role'] as String,
+    };
   }
 
   Future<void> logout() async {
