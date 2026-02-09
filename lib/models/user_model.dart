@@ -2,7 +2,7 @@ class AppUser {
   final String id;
   final String nama;
   final String email;
-  final String role; // Admin, Petugas, Siswa
+  final String role; 
   final DateTime? createdAt;
 
   AppUser({
@@ -18,17 +18,17 @@ class AppUser {
       id: json['id'] as String,
       nama: json['nama'] as String? ?? '',
       email: json['email'] as String? ?? '',
-      role: json['role'] as String? ?? 'Petugas',
+      role: json['role'] as String? ?? 'peminjam',
       createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'])
+          ? DateTime.parse(json['created_at'] as String)
           : null,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'nama': nama,
-      'email': email,
+      'nama': nama.trim(),
+      'email': email.trim(),
       'role': role,
     };
   }

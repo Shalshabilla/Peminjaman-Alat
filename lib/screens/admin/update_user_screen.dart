@@ -12,44 +12,21 @@ class UpdateUserScreen extends StatefulWidget {
 }
 
 class _UpdateUserScreenState extends State<UpdateUserScreen> {
+  final _formKey = GlobalKey<FormState>();
   final UserService _service = UserService();
 
-  late String nama;
-  late String email;
-  late String role;
+  late TextEditingController _namaController;
+  late TextEditingController _emailController;
+  String? _selectedRole;
 
-  final roles = ['Admin', 'Petugas', 'Siswa'];
+  final List<String> roles = ['admin', 'petugas', 'peminjam'];
 
   @override
   void initState() {
     super.initState();
-    nama = widget.user.nama;
-    email = widget.user.email;
-    role = widget.user.role;
-  }
-
-  InputDecoration _input() {
-    return InputDecoration(
-      filled: true,
-      fillColor: Colors.white,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide.none,
-      ),
-    );
-  }
-
-  Future<void> _update() async {
-    await _service.updateUser(
-      widget.user.id,
-      AppUser(
-        id: widget.user.id,
-        nama: nama,
-        email: email,
-        role: role,
-      ),
-    );
-    Navigator.pop(context, true);
+    _namaController = TextEditingController(text: widget.user.nama);
+    _emailController = TextEditingController(text: widget.user.email);
+    _selectedRole = widget.user.role;
   }
 
   @override
@@ -61,52 +38,135 @@ class _UpdateUserScreenState extends State<UpdateUserScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: const Color(0xFF2F345D),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            TextFormField(
-              initialValue: nama,
-              decoration: _input(),
-              onChanged: (v) => nama = v,
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              initialValue: email,
-              decoration: _input(),
-              onChanged: (v) => email = v,
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField(
-              value: role,
-              decoration: _input(),
-              items: roles
-                  .map((e) =>
-                      DropdownMenuItem(value: e, child: Text(e)))
-                  .toList(),
-              onChanged: (v) => role = v!,
-            ),
-            const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: ElevatedButton(
-                onPressed: _update,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2F345D),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                child: const Text('Simpan'),
-              ),
-            ),
-          ],
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
         ),
       ),
-      bottomNavigationBar:
-          AdminBottomNavbar(currentIndex: 1, onTap: (_) {}),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Nama', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF2F345D))),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _namaController,
+                decoration: InputDecoration(
+                  hintText: 'Nama',
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: const BorderSide(color: Color(0xFF2F345D), width: 1.5),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: const BorderSide(color: Color(0xFF2F345D), width: 1.5),
+                  ),
+                ),
+                validator: (v) => v!.trim().isEmpty ? 'Wajib diisi' : null,
+              ),
+              const SizedBox(height: 24),
+
+              const Text('Email', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF2F345D))),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
+                decoration: InputDecoration(
+                  hintText: 'Email',
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: const BorderSide(color: Color(0xFF2F345D), width: 1.5),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: const BorderSide(color: Color(0xFF2F345D), width: 1.5),
+                  ),
+                ),
+                validator: (v) {
+                  if (v!.trim().isEmpty) return 'Wajib diisi';
+                  if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(v.trim())) {
+                    return 'Email tidak valid';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 24),
+
+              const Text('Role', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF2F345D))),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                value: _selectedRole,
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: const BorderSide(color: Color(0xFF2F345D), width: 1.5),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: const BorderSide(color: Color(0xFF2F345D), width: 1.5),
+                  ),
+                ),
+                items: roles.map((role) {
+                  return DropdownMenuItem<String>(
+                    value: role,
+                    child: Text(role),
+                  );
+                }).toList(),
+                onChanged: (value) => setState(() => _selectedRole = value),
+                validator: (v) => v == null ? 'Pilih role' : null,
+              ),
+              const SizedBox(height: 40),
+
+              SizedBox(
+                width: double.infinity,
+                height: 54,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    if (!_formKey.currentState!.validate()) return;
+
+                    try {
+                      final updatedUser = AppUser(
+                        id: widget.user.id,
+                        nama: _namaController.text.trim(),
+                        email: _emailController.text.trim(),
+                        role: _selectedRole!,
+                      );
+
+                      await _service.updateUser(widget.user.id, updatedUser);
+                      Navigator.pop(context, true);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Pengguna berhasil diperbarui')),
+                      );
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Gagal update: $e')),
+                      );
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2F345D),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  child: const Text(
+                    'Simpan',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      bottomNavigationBar: AdminBottomNavbar(currentIndex: 1, onTap: (_) {}),
     );
   }
 }

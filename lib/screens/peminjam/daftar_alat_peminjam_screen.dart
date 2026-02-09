@@ -1,0 +1,265 @@
+import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../models/alat_model.dart';
+import '../../widgets/alat_item_peminjam.dart'; 
+import '../../widgets/peminjam_bottom_navbar.dart'; 
+import 'form_peminjaman_screen.dart';
+
+class DaftarAlatPeminjamScreen extends StatefulWidget {
+  const DaftarAlatPeminjamScreen({super.key});
+
+  @override
+  State<DaftarAlatPeminjamScreen> createState() => _DaftarAlatPeminjamScreenState();
+}
+
+class _DaftarAlatPeminjamScreenState extends State<DaftarAlatPeminjamScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  String _selectedCategory = 'Semua';
+
+  List<Alat> _allAlat = [];
+
+  final List<String> _categories = [
+    'Semua',
+    'Perangkat',
+    'Jaringan',
+    'Penyimpanan',
+    // tambahkan 'Kabel' dll jika perlu
+  ];
+
+  Map<int, String> _kategoriMap = {};
+
+  final Color primary = const Color(0xFF2F3A8F); // navy
+
+  @override
+  void initState() {
+    super.initState();
+    _loadKategori();
+    _searchController.addListener(() {
+      setState(() => _searchQuery = _searchController.text.trim().toLowerCase());
+    });
+  }
+
+  Future<void> _loadKategori() async {
+    final data = await Supabase.instance.client
+        .from('kategori')
+        .select('id_kategori, nama_kategori');
+
+    setState(() {
+      _kategoriMap = {
+        for (var k in data) k['id_kategori'] as int: k['nama_kategori'] as String,
+      };
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<Alat> get _filteredAlat {
+    return _allAlat.where((alat) {
+      final matchSearch = alat.namaAlat.toLowerCase().contains(_searchQuery);
+      final kategori = alat.namaKategori ?? '';
+      final matchCategory = _selectedCategory == 'Semua' || kategori == _selectedCategory;
+      return matchSearch && matchCategory;
+    }).toList();
+  }
+
+  Future<void> _refreshData() async {
+    try {
+      final response = await Supabase.instance.client
+          .from('alat')
+          .select('id_alat, id_kategori, nama_alat, stok, status, gambar, created_at')
+          .order('created_at', ascending: false);
+
+      setState(() {
+        _allAlat = response.map((map) {
+          final alat = Alat.fromJson(map);
+          alat.namaKategori = _kategoriMap[alat.idKategori] ?? 'Tidak diketahui';
+          return alat;
+        }).toList();
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal memuat data: $e')),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: primary),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          'Daftar Alat',
+          style: TextStyle(color: primary, fontWeight: FontWeight.bold),
+        ),
+      ),
+      body: Column(
+        children: [
+          const SizedBox(height: 10),
+
+          // Search bar persis seperti screenshot
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(30),
+              border: Border.all(color: primary, width: 2),
+            ),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                icon: Icon(Icons.search, color: primary),
+                hintText: 'Cari alat...',
+                border: InputBorder.none,
+                hintStyle: TextStyle(color: Colors.grey[600]),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Filter chips
+          SizedBox(
+            height: 42,
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              scrollDirection: Axis.horizontal,
+              itemCount: _categories.length,
+              itemBuilder: (context, index) {
+                final cat = _categories[index];
+                final isSelected = cat == _selectedCategory;
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: FilterChip(
+                    label: Text(
+                      cat,
+                      style: TextStyle(
+                        color: isSelected ? Colors.white : primary,
+                        fontSize: 13,
+                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                      ),
+                    ),
+                    selected: isSelected,
+                    onSelected: (_) => setState(() => _selectedCategory = cat),
+                    backgroundColor: Colors.white,
+                    selectedColor: primary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      side: BorderSide(
+                        color: isSelected ? Colors.transparent : primary.withOpacity(0.5),
+                      ),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    showCheckmark: false,
+                  ),
+                );
+              },
+            ),
+          ),
+
+          const SizedBox(height: 8),
+
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: _refreshData,
+              child: StreamBuilder<List<Map<String, dynamic>>>(
+                stream: Supabase.instance.client
+                    .from('alat')
+                    .stream(primaryKey: ['id_alat'])
+                    .order('created_at', ascending: false),
+                builder: (context, snapshot) {
+                  if (snapshot.hasError) {
+                    return Center(child: Text('Error: ${snapshot.error}'));
+                  }
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  final data = snapshot.data ?? [];
+                  _allAlat = data.map((map) {
+                    final alat = Alat.fromJson(map);
+                    alat.namaKategori = _kategoriMap[alat.idKategori] ?? 'Tidak diketahui';
+                    return alat;
+                  }).toList();
+
+                  final filtered = _filteredAlat;
+
+                  if (filtered.isEmpty) {
+                    return Center(
+                      child: Text(
+                        _selectedCategory == 'Semua'
+                            ? 'Belum ada data alat'
+                            : 'Tidak ada alat di kategori $_selectedCategory',
+                        style: const TextStyle(color: Colors.grey, fontSize: 16),
+                      ),
+                    );
+                  }
+
+                  return GridView.builder(
+                    padding: const EdgeInsets.all(16),
+                    gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                      maxCrossAxisExtent: 200,          // agak lebih kecil agar mirip UI
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                      childAspectRatio: 0.62,           // sesuaikan tinggi card
+                    ),
+                    itemCount: filtered.length,
+                    itemBuilder: (context, index) {
+                      final alat = filtered[index];
+                      return Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: primary, width: 1.5),
+                          color: Colors.white,
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: AlatItemPeminjam(
+                            alat: alat,
+                            onAjukanPeminjaman: () {
+                              // TODO: arahkan ke halaman form peminjaman
+                              // Contoh:
+                              // Navigator.push(
+                              //   context,
+                              //   MaterialPageRoute(
+                              //     builder: (context) => FormPeminjamanScreen(alat: alat),
+                              //   ),
+                              // );
+
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Ajukan peminjaman: ${alat.namaAlat}')),
+                              );
+                            },
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+      bottomNavigationBar: PeminjamBottomNavbar(
+        currentIndex: 0, 
+        onTap: (index) {
+          // handle navigasi bottom bar peminjam
+        },
+      ),
+    );
+  }
+}

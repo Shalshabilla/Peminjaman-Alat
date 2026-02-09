@@ -99,12 +99,12 @@ class _AlatCreateScreenState extends State<AlatCreateScreen> {
       }
 
       final alat = Alat(
-        idAlat: 0, // akan digenerate oleh supabase
+        idAlat: 0, 
         idKategori: _selectedKategoriId!,
-        namaKategori: '', // akan di-join saat read jika perlu
+        namaKategori: '', 
         namaAlat: _namaController.text.trim(),
         stok: int.parse(_stokController.text.trim()),
-        status: 'tersedia',
+        status: 'tersedia', 
       );
 
       await _service.createAlat(alat, bytes, fileName);
@@ -116,7 +116,7 @@ class _AlatCreateScreenState extends State<AlatCreateScreen> {
             backgroundColor: AppColors.success,
           ),
         );
-        Navigator.pop(context, true); // Kembali ke halaman sebelumnya + refresh
+        Navigator.pop(context, true);
       }
     } catch (e) {
       String errorMsg = 'Gagal menyimpan: $e';
@@ -124,6 +124,8 @@ class _AlatCreateScreenState extends State<AlatCreateScreen> {
         errorMsg = 'Bucket tidak ditemukan! Cek nama bucket di AlatService.';
       } else if (e.toString().contains('404')) {
         errorMsg = 'Bucket atau permission salah (404). Cek dashboard Supabase.';
+      } else if (e.toString().contains('23514')) {
+        errorMsg = 'Nilai status tidak valid! Cek constraint database dan sesuaikan nilai "status" di kode.';
       }
 
       if (mounted) {

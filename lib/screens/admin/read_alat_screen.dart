@@ -17,6 +17,7 @@ class _ReadAlatScreenState extends State<ReadAlatScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   String _selectedCategory = 'Semua';
+
   List<Alat> _allAlat = [];
 
   final List<String> _categories = [
@@ -24,26 +25,28 @@ class _ReadAlatScreenState extends State<ReadAlatScreen> {
     'Penyimpanan',
     'Perangkat',
     'Jaringan',
-    'Kabel'
+    'Kabel',
   ];
 
-  Map<int, String> _kategoriMap = {}; // ✅ TAMBAHAN
+  Map<int, String> _kategoriMap = {};
 
   final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
       GlobalKey<RefreshIndicatorState>();
 
+  // Warna utama navy (sama seperti di Daftar Kategori)
+  final Color primary = const Color(0xFF2F3A8F);
+
   @override
   void initState() {
     super.initState();
-    _loadKategori(); // ✅ TAMBAHAN
-
+    _loadKategori();
     _searchController.addListener(() {
-      setState(() =>
-          _searchQuery = _searchController.text.trim().toLowerCase());
+      setState(
+        () => _searchQuery = _searchController.text.trim().toLowerCase(),
+      );
     });
   }
 
-  // ✅ TAMBAHAN
   Future<void> _loadKategori() async {
     final data = await Supabase.instance.client
         .from('kategori')
@@ -51,7 +54,8 @@ class _ReadAlatScreenState extends State<ReadAlatScreen> {
 
     setState(() {
       _kategoriMap = {
-        for (var k in data) k['id_kategori']: k['nama_kategori']
+        for (var k in data)
+          k['id_kategori'] as int: k['nama_kategori'] as String,
       };
     });
   }
@@ -64,20 +68,12 @@ class _ReadAlatScreenState extends State<ReadAlatScreen> {
 
   List<Alat> get _filteredAlat {
     return _allAlat.where((alat) {
-      final matchSearch =
-          alat.namaAlat.toLowerCase().contains(_searchQuery);
-
+      final matchSearch = alat.namaAlat.toLowerCase().contains(_searchQuery);
       final kategori = alat.namaKategori ?? '';
-
-      final matchCategory = _selectedCategory == 'Semua' ||
-          kategori == _selectedCategory;
-
+      final matchCategory =
+          _selectedCategory == 'Semua' || kategori == _selectedCategory;
       return matchSearch && matchCategory;
     }).toList();
-  }
-
-  Future<void> _refresh() async {
-    setState(() {});
   }
 
   Future<void> _manualRefresh() async {
@@ -85,68 +81,91 @@ class _ReadAlatScreenState extends State<ReadAlatScreen> {
       final response = await Supabase.instance.client
           .from('alat')
           .select(
-              'id_alat, id_kategori, nama_alat, stok, status, gambar, created_at')
+            'id_alat, id_kategori, nama_alat, stok, status, gambar, created_at',
+          )
           .order('created_at', ascending: false);
 
       setState(() {
-        _allAlat = response.map((map) {
-          final alat = Alat.fromJson(map);
-          alat.namaKategori = _kategoriMap[alat.idKategori] ?? 'Tidak diketahui';
-          return alat;
-        }).toList();
+        _allAlat =
+            response.map((map) {
+              final alat = Alat.fromJson(map);
+              alat.namaKategori =
+                  _kategoriMap[alat.idKategori] ?? 'Tidak diketahui';
+              return alat;
+            }).toList();
       });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal muat ulang data: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Gagal muat ulang data: $e')));
+      }
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F6FA),
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Daftar Alat', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w600)),
-        centerTitle: true,
-        backgroundColor: const Color(0xFFF5F6FA),
+        backgroundColor: Colors.transparent,
         elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: primary),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          'Daftar Alat',
+          style: TextStyle(color: primary, fontWeight: FontWeight.bold),
+        ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.add_box_rounded, color: Colors.blueAccent, size: 28),
-            onPressed: () async {
-              final result = await Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const AlatCreateScreen()),
-              );
-              if (result == true) {
-                print('Create berhasil, refresh data');
-                await _manualRefresh(); // Refresh manual setelah create
-              }
-            },
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: GestureDetector(
+              onTap: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AlatCreateScreen(),
+                  ),
+                );
+                if (result == true) {
+                  await _manualRefresh();
+                }
+              },
+              child: CircleAvatar(
+                backgroundColor: Colors.grey[400],
+                child: const Icon(Icons.add, color: Colors.white),
+              ),
+            ),
           ),
-          const SizedBox(width: 8),
         ],
       ),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          const SizedBox(height: 10),
+          // Search box — sama persis seperti di kategori
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(30),
+              border: Border.all(color: primary, width: 2),
+            ),
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
+                icon: Icon(Icons.search, color: primary),
                 hintText: 'Cari alat...',
-                prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                filled: true,
-                fillColor: Colors.white,
-                contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide.none),
+                border: InputBorder.none,
               ),
             ),
           ),
+          const SizedBox(height: 12),
+
+          // Filter chips dengan warna navy
           SizedBox(
-            height: 40,
+            height: 42,
             child: ListView.builder(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               scrollDirection: Axis.horizontal,
@@ -160,129 +179,155 @@ class _ReadAlatScreenState extends State<ReadAlatScreen> {
                     label: Text(
                       cat,
                       style: TextStyle(
-                        color: isSelected ? Colors.white : Colors.blue[800],
+                        color: isSelected ? Colors.white : primary,
                         fontSize: 13,
-                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                        fontWeight:
+                            isSelected ? FontWeight.w600 : FontWeight.w500,
                       ),
                     ),
                     selected: isSelected,
                     onSelected: (_) => setState(() => _selectedCategory = cat),
                     backgroundColor: Colors.white,
-                    selectedColor: Colors.blue[700],
+                    selectedColor: primary, // navy saat dipilih
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20),
-                      side: BorderSide(color: isSelected ? Colors.transparent : Colors.blue[200]!),
+                      side: BorderSide(
+                        color:
+                            isSelected
+                                ? Colors.transparent
+                                : primary.withOpacity(0.5),
+                      ),
                     ),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     showCheckmark: false,
                   ),
                 );
               },
             ),
           ),
+
           const SizedBox(height: 8),
+
           Expanded(
-            child: Container(
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-              ),
-              child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-                child: RefreshIndicator(
-                  key: _refreshIndicatorKey,
-                  onRefresh: _manualRefresh, // Pakai manual refresh untuk pull-to-refresh juga
-                  child: StreamBuilder<List<Map<String, dynamic>>>(
-                    stream: Supabase.instance.client
-    .from('alat')
-    .stream(primaryKey: ['id_alat'])
-    .order('created_at', ascending: false),
+            child: RefreshIndicator(
+              key: _refreshIndicatorKey,
+              onRefresh: _manualRefresh,
+              child: StreamBuilder<List<Map<String, dynamic>>>(
+                stream: Supabase.instance.client
+                    .from('alat')
+                    .stream(primaryKey: ['id_alat'])
+                    .order('created_at', ascending: false),
+                builder: (context, snapshot) {
+                  if (snapshot.hasError) {
+                    return Center(child: Text('Error: ${snapshot.error}'));
+                  }
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
 
-                    builder: (context, snapshot) {
-                      if (snapshot.hasError) {
-                        print('Stream error: ${snapshot.error}');
-                        return Center(child: Text('Error memuat data: ${snapshot.error}'));
-                      }
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
+                  final data = snapshot.data ?? [];
+                  _allAlat =
+                      data.map((map) {
+                        final alat = Alat.fromJson(map);
+                        alat.namaKategori =
+                            _kategoriMap[alat.idKategori] ?? 'Tidak diketahui';
+                        return alat;
+                      }).toList();
 
-                      final data = snapshot.data ?? [];
-                      print('Stream received ${data.length} items');
+                  final filtered = _filteredAlat;
 
-                      _allAlat = data.map((map) {
-  final alat = Alat.fromJson(map);
-  alat.namaKategori =
-      _kategoriMap[alat.idKategori] ?? 'Tidak diketahui';
-  return alat;
-}).toList();
-
-
-                      final filtered = _filteredAlat;
-
-                      if (filtered.isEmpty) {
-  return Center(
-    child: Text(
-      _selectedCategory == 'Semua'
-          ? 'Belum ada data alat'
-          : 'Tidak ada alat di kategori $_selectedCategory',
-      style: const TextStyle(color: Colors.grey, fontSize: 16),
-    ),
-  );
-}
-
-
-                      return GridView.builder(
-                        padding: const EdgeInsets.all(12),
-                        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                          maxCrossAxisExtent: 220,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
-                          childAspectRatio: 0.68,
+                  if (filtered.isEmpty) {
+                    return Center(
+                      child: Text(
+                        _selectedCategory == 'Semua'
+                            ? 'Belum ada data alat'
+                            : 'Tidak ada alat di kategori $_selectedCategory',
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 16,
                         ),
-                        itemCount: filtered.length,
-                        itemBuilder: (context, index) {
-                          final alat = filtered[index];
-                          return AlatItem(
+                      ),
+                    );
+                  }
+
+                  return GridView.builder(
+                    padding: const EdgeInsets.all(16),
+                    gridDelegate:
+                        const SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: 220,
+                          crossAxisSpacing: 16,
+                          mainAxisSpacing: 16,
+                          childAspectRatio: 0.65,
+                        ),
+                    itemCount: filtered.length,
+                    itemBuilder: (context, index) {
+                      final alat = filtered[index];
+                      return Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: primary, width: 2),
+                          color: Colors.white,
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(20),
+                          child: AlatItem(
                             key: ValueKey(alat.idAlat),
                             alat: alat,
                             onEdit: () async {
-  print('=== DEBUG EDIT ===');
-  print('Alat yang dipilih: ${alat.toString()}'); // Print seluruh object
-  print('ID alat sebelum kirim ke update: ${alat.idAlat}');
-  if (alat.idAlat == null || alat.idAlat == 0) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('ID alat tidak valid! Cek model fromJson'), backgroundColor: Colors.orange),
-    );
-    return;
-  }
-
-  final result = await Navigator.push(
-    context,
-    MaterialPageRoute(builder: (context) => AlatUpdateScreen(alat: alat)),
-  );
-  if (result == true) {
-    print('Update berhasil dari dialog, jalankan manual refresh');
-    await _manualRefresh();
-  }
-},
+                              if (alat.idAlat == null || alat.idAlat == 0) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('ID alat tidak valid!'),
+                                  ),
+                                );
+                                return;
+                              }
+                              final result = await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder:
+                                      (context) => AlatUpdateScreen(alat: alat),
+                                ),
+                              );
+                              if (result == true) {
+                                await _manualRefresh();
+                              }
+                            },
                             onHapus: () async {
                               final confirm = await showDialog<bool>(
                                 context: context,
-                                builder: (context) => AlertDialog(
-                                  title: const Text('Hapus Alat'),
-                                  content: const Text('Yakin ingin menghapus alat ini? Aksi ini tidak bisa dibatalkan.'),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () => Navigator.pop(context, false),
-                                      child: const Text('Batal', style: TextStyle(color: Colors.grey)),
+                                builder:
+                                    (context) => AlertDialog(
+                                      title: const Text('Hapus Alat'),
+                                      content: const Text(
+                                        'Yakin ingin menghapus alat ini?',
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed:
+                                              () =>
+                                                  Navigator.pop(context, false),
+                                          child: Text(
+                                            'Batal',
+                                            style: TextStyle(
+                                              color: Colors.grey[700],
+                                            ),
+                                          ),
+                                        ),
+                                        TextButton(
+                                          onPressed:
+                                              () =>
+                                                  Navigator.pop(context, true),
+                                          child: const Text(
+                                            'Hapus',
+                                            style: TextStyle(color: Colors.red),
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                    TextButton(
-                                      onPressed: () => Navigator.pop(context, true),
-                                      child: const Text('Hapus', style: TextStyle(color: Colors.red)),
-                                    ),
-                                  ],
-                                ),
                               );
 
                               if (confirm != true) return;
@@ -294,29 +339,36 @@ class _ReadAlatScreenState extends State<ReadAlatScreen> {
                                     .eq('id_alat', alat.idAlat);
 
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Alat berhasil dihapus'), backgroundColor: Colors.green),
+                                  const SnackBar(
+                                    content: Text('Alat berhasil dihapus'),
+                                    backgroundColor: Colors.green,
+                                  ),
                                 );
-
-                                await _manualRefresh(); // ← PASTI TER-UPDATE SETELAH HAPUS
+                                await _manualRefresh();
                               } catch (e) {
-                                print('Delete error: $e');
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Gagal hapus: $e'), backgroundColor: Colors.red),
+                                  SnackBar(
+                                    content: Text('Gagal hapus: $e'),
+                                    backgroundColor: Colors.red,
+                                  ),
                                 );
                               }
                             },
-                          );
-                        },
+                          ),
+                        ),
                       );
                     },
-                  ),
-                ),
+                  );
+                },
               ),
             ),
           ),
         ],
       ),
-      bottomNavigationBar: AdminBottomNavbar(currentIndex: 1, onTap: (index) {}),
+      bottomNavigationBar: AdminBottomNavbar(
+        currentIndex: 1,
+        onTap: (index) {},
+      ),
     );
   }
 }

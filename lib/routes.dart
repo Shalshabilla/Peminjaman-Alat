@@ -21,7 +21,7 @@ import 'screens/petugas/profil_petugas_screen.dart';
 
 // Peminjam
 import 'screens/peminjam/dashboard_peminjam_screen.dart';
-import 'screens/peminjam/daftar_alat_screen.dart';
+import 'screens/peminjam/daftar_alat_peminjam_screen.dart';
 import 'screens/peminjam/peminjaman_pengembalian_screen.dart';
 import 'screens/peminjam/profil_peminjam_screen.dart';
 

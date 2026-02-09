@@ -1,10 +1,14 @@
+import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
 import '../../models/alat_model.dart';
-import '../../utils/colors.dart';
+import '../../services/alat_services.dart';
+import '../../utils/colors.dart'; 
 
 class AlatUpdateScreen extends StatefulWidget {
   final Alat alat;
@@ -17,35 +21,59 @@ class AlatUpdateScreen extends StatefulWidget {
 
 class _AlatUpdateScreenState extends State<AlatUpdateScreen> {
   final _formKey = GlobalKey<FormState>();
-  late TextEditingController _namaController;
-  late TextEditingController _stokController;
+  final _namaController = TextEditingController();
+  final _stokController = TextEditingController();
   int? _selectedKategoriId;
-  Uint8List? _newImageBytes;
 
+  Uint8List? _newImageBytes;
+  File? _newImageFile; // Untuk mobile
+  String? _existingGambar; // Gambar lama
   final _picker = ImagePicker();
+  final _service = AlatService();
 
   bool _loading = false;
 
   @override
   void initState() {
     super.initState();
-    _namaController = TextEditingController(text: widget.alat.namaAlat);
-    _stokController = TextEditingController(text: widget.alat.stok.toString());
+    _namaController.text = widget.alat.namaAlat;
+    _stokController.text = widget.alat.stok.toString();
     _selectedKategoriId = widget.alat.idKategori;
+    _existingGambar = widget.alat.gambar;
+  }
+
+  Future<List<Map<String, dynamic>>> _loadKategori() async {
+    try {
+      final res = await Supabase.instance.client
+          .from('kategori')
+          .select('id_kategori, nama_kategori')
+          .order('nama_kategori');
+      return List<Map<String, dynamic>>.from(res);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal memuat kategori: $e')),
+        );
+      }
+      return [];
+    }
   }
 
   Future<void> _pickImage() async {
     try {
       final XFile? file = await _picker.pickImage(
         source: ImageSource.gallery,
-        imageQuality: 85,
+        imageQuality: 80,
         maxWidth: 1024,
       );
+
       if (file != null && mounted) {
-        final bytes = await file.readAsBytes();
-        setState(() {
-          _newImageBytes = bytes;
-        });
+        if (kIsWeb) {
+          final bytes = await file.readAsBytes();
+          setState(() => _newImageBytes = bytes);
+        } else {
+          setState(() => _newImageFile = File(file.path));
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -56,78 +84,95 @@ class _AlatUpdateScreenState extends State<AlatUpdateScreen> {
     }
   }
 
- Future<void> _update() async {
-  if (!_formKey.currentState!.validate() || _selectedKategoriId == null) return;
-
-  setState(() => _loading = true);
-
-  try {
-    print('=== MULAI UPDATE ===');
-    print('ID target: ${widget.alat.idAlat}');
-    print('Nilai lama dari widget: nama_alat=${widget.alat.namaAlat}, stok=${widget.alat.stok}');
-
-    String? newImageUrl = widget.alat.gambar;
-
-    if (_newImageBytes != null) {
-      final fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final path = 'alat/$fileName';
-
-      await Supabase.instance.client.storage
-          .from('alat_images')
-          .uploadBinary(path, _newImageBytes!, fileOptions: const FileOptions(contentType: 'image/jpeg'));
-
-      newImageUrl = Supabase.instance.client.storage.from('alat_images').getPublicUrl(path);
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate() || _selectedKategoriId == null) {
+      if (_selectedKategoriId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Pilih kategori terlebih dahulu')),
+        );
+      }
+      return;
     }
 
-    final updateData = {
-      'nama_alat': _namaController.text.trim(),
-      'id_kategori': _selectedKategoriId,
-      'stok': int.parse(_stokController.text.trim()),
-      'gambar': newImageUrl,
-    };
+    setState(() => _loading = true);
 
-    print('Nilai baru yang akan dikirim: $updateData');
+    try {
+      Uint8List? newBytes;
+      if (kIsWeb) {
+        newBytes = _newImageBytes;
+      } else if (_newImageFile != null) {
+        newBytes = await _newImageFile!.readAsBytes();
+      }
 
-    // Cek row sebelum update
-    final checkBefore = await Supabase.instance.client
-        .from('alat')
-        .select('id_alat, nama_alat, stok, gambar')
-        .eq('id_alat', widget.alat.idAlat)
-        .maybeSingle();
-
-    print('Row sebelum update: $checkBefore');
-
-    // Lakukan update + return row yang terupdate
-    final updatedRows = await Supabase.instance.client
-        .from('alat')
-        .update(updateData)
-        .eq('id_alat', widget.alat.idAlat)
-        .select(); // ← Return row setelah update
-
-    print('Row setelah update: $updatedRows');
-
-if (updatedRows.isEmpty) {
-  print('Update tidak mengubah data karena nilainya sama');
-}
-
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Alat berhasil diperbarui'), backgroundColor: AppColors.success),
+      final updatedAlat = Alat(
+        idAlat: widget.alat.idAlat,
+        idKategori: _selectedKategoriId!,
+        namaKategori: widget.alat.namaKategori ?? '',
+        namaAlat: _namaController.text.trim(),
+        stok: int.parse(_stokController.text.trim()),
+        status: 'tersedia', 
+        gambar: _existingGambar,
       );
-      Navigator.pop(context, true);
+
+      await _service.updateAlat(widget.alat.idAlat, updatedAlat, newBytes);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Alat berhasil diupdate!'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+        Navigator.pop(context, true); // Refresh list
+      }
+    } catch (e) {
+      String errorMsg = 'Gagal update: $e';
+      if (e.toString().contains('23514')) {
+        errorMsg = 'Nilai status tidak valid! Cek constraint database dan sesuaikan nilai "status" di kode.';
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorMsg), backgroundColor: AppColors.danger),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
-  } catch (e) {
-    print('Update error detail: $e');
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal update: $e'), backgroundColor: AppColors.danger),
-      );
-    }
-  } finally {
-    if (mounted) setState(() => _loading = false);
   }
-}
+
+  Widget _buildImagePreview() {
+    if (_newImageBytes != null) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Image.memory(_newImageBytes!, fit: BoxFit.cover),
+      );
+    } else if (!kIsWeb && _newImageFile != null) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Image.file(_newImageFile!, fit: BoxFit.cover),
+      );
+    } else if (_existingGambar != null && _existingGambar!.isNotEmpty) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Image.network(_existingGambar!, fit: BoxFit.cover),
+      );
+    } else {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.cloud_upload, size: 48, color: AppColors.accentBlue),
+            const SizedBox(height: 8),
+            Text(
+              'Unggah Foto Baru',
+              style: TextStyle(color: AppColors.accentBlue, fontSize: 15),
+            ),
+          ],
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -140,7 +185,7 @@ if (updatedRows.isEmpty) {
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black87),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('Perbarui Alat', style: TextStyle(color: AppColors.textPrimary)),
+        title: const Text('Update Alat', style: TextStyle(color: AppColors.textPrimary)),
         centerTitle: false,
       ),
       body: SafeArea(
@@ -163,34 +208,12 @@ if (updatedRows.isEmpty) {
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(color: AppColors.borderLight),
                     ),
-                    child: _newImageBytes != null
-                        ? ClipRRect(
-                            borderRadius: BorderRadius.circular(16),
-                            child: Image.memory(_newImageBytes!, fit: BoxFit.cover),
-                          )
-                        : (widget.alat.gambar != null
-                            ? ClipRRect(
-                                borderRadius: BorderRadius.circular(16),
-                                child: Image.network(
-                                  widget.alat.gambar!,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, size: 60),
-                                ),
-                              )
-                            : Center(
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(Icons.cloud_upload, size: 48, color: AppColors.accentBlue),
-                                    const SizedBox(height: 8),
-                                    Text('Unggah Foto Baru', style: TextStyle(color: AppColors.accentBlue, fontSize: 15)),
-                                  ],
-                                ),
-                              )),
+                    child: _buildImagePreview(),
                   ),
                 ),
                 const SizedBox(height: 28),
 
+                // Nama Alat
                 const Text('Nama Alat', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
                 TextFormField(
@@ -207,15 +230,19 @@ if (updatedRows.isEmpty) {
 
                 const SizedBox(height: 24),
 
+                // Kategori
                 const Text('Kategori', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
                 FutureBuilder<List<Map<String, dynamic>>>(
-                  future: Supabase.instance.client.from('kategori').select('id_kategori, nama_kategori').order('nama_kategori'),
+                  future: _loadKategori(),
                   builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
                     final items = snapshot.data ?? [];
                     return DropdownButtonFormField<int>(
                       value: _selectedKategoriId,
+                      hint: const Text('Pilih Kategori'),
                       isExpanded: true,
                       items: items.map((k) => DropdownMenuItem<int>(
                             value: k['id_kategori'] as int,
@@ -234,6 +261,7 @@ if (updatedRows.isEmpty) {
 
                 const SizedBox(height: 24),
 
+                // Stok
                 const Text('Stok', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
                 TextFormField(
@@ -259,13 +287,17 @@ if (updatedRows.isEmpty) {
                   width: double.infinity,
                   height: 54,
                   child: ElevatedButton(
-                    onPressed: _loading ? null : _update,
+                    onPressed: _loading ? null : _save,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     ),
                     child: _loading
-                        ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.8))
+                        ? const SizedBox(
+                            height: 24,
+                            width: 24,
+                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.8),
+                          )
                         : const Text('Simpan Perubahan', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
                   ),
                 ),

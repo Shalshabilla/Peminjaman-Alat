@@ -15,110 +15,145 @@ class AlatItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isTersedia = alat.stok > 0;
+    final bool tersedia = alat.stok > 0;
+    final String statusText = tersedia ? 'Tersedia' : 'Dipinjam';
+    final IconData statusIcon = tersedia ? Icons.check_circle : Icons.history;
+    final Color statusColor = tersedia ? Colors.green : Colors.orange;
 
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          /// ===== IMAGE (fleksibel tinggi) =====
-          Expanded(
+    return Column(
+      mainAxisSize: MainAxisSize.max,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Gambar
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+          child: AspectRatio(
+            aspectRatio: 1.25,
             child: ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+              borderRadius: BorderRadius.circular(8),
               child: alat.gambar != null && alat.gambar!.isNotEmpty
                   ? Image.network(
                       alat.gambar!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) =>
-                          const Center(child: Icon(Icons.broken_image, size: 40)),
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) => Container(
+                        color: Colors.grey[200],
+                        child: const Icon(Icons.broken_image, size: 40, color: Colors.grey),
+                      ),
                     )
                   : Container(
                       color: Colors.grey[200],
-                      child: const Icon(Icons.image, size: 40),
+                      child: const Icon(Icons.image, size: 40, color: Colors.grey),
                     ),
             ),
           ),
+        ),
 
-          /// ===== CONTENT =====
-          Padding(
-            padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
-            child: Text(
-              alat.namaAlat,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
+        // GARIS PEMISAH – penuh kiri-kanan, agak tebal
+        const Divider(
+          height: 1.5,
+          thickness: 1.5,
+          color: Color(0xFFD0D0D0), // abu-abu agak tebal & jelas
+          indent: 0,
+          endIndent: 0,
+        ),
+
+        const SizedBox(height: 10),
+
+        // Nama alat
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Text(
+            alat.namaAlat,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              height: 1.2,
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 8),
+
+        // Stok
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 1),
+          child: Text(
+            'Stok: ${alat.stok}',
+            style: const TextStyle(
+              fontSize: 13,
+              color: Colors.black87,
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 2),
+
+        // Status + ikon
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 1),
+          child: Row(
+            children: [
+              Icon(
+                statusIcon,
+                size: 16,
+                color: statusColor,
               ),
-              textAlign: TextAlign.center,
-            ),
-          ),
-
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  isTersedia ? Icons.check_circle : Icons.warning,
-                  size: 16,
-                  color: isTersedia ? Colors.green : Colors.orange,
+              const SizedBox(width: 6),
+              Text(
+                statusText,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: statusColor,
                 ),
-                const SizedBox(width: 4),
-                Flexible(
-                  child: Text(
-                    isTersedia
-                        ? 'Stok ${alat.stok}'
-                        : 'Stok habis',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: isTersedia ? Colors.green : Colors.orange,
-                    ),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 12),
+
+        // Tombol Edit & Hapus – lebih ditegaskan dengan ElevatedButton
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          child: Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: onEdit,
+                  icon: const Icon(Icons.edit, size: 16, color: Colors.white),
+                  label: const Text('Edit', style: TextStyle(fontSize: 13, color: Colors.white)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue.shade600,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    elevation: 1,
                   ),
                 ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 6),
-
-          /// ===== BUTTON =====
-          Padding(
-            padding: const EdgeInsets.fromLTRB(6, 0, 6, 8),
-            child: Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: onEdit,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      backgroundColor: Colors.blue,
-                      foregroundColor: Colors.white,
-                    ),
-                    child: const Text('Edit', style: TextStyle(fontSize: 12)),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: onHapus,
+                  icon: const Icon(Icons.delete, size: 16, color: Colors.white),
+                  label: const Text('Hapus', style: TextStyle(fontSize: 13, color: Colors.white)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red.shade600,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    elevation: 1,
                   ),
                 ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: onHapus,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      backgroundColor: Colors.red,
-                      foregroundColor: Colors.white,
-                    ),
-                    child: const Text('Hapus', style: TextStyle(fontSize: 12)),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

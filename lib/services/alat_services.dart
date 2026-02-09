@@ -5,9 +5,9 @@ import '../models/alat_model.dart';
 
 class AlatService {
   final SupabaseClient _supabase = Supabase.instance.client;
-  static const String bucketName = 'alat_images'; // PASTIKAN SAMA DENGAN DI STORAGE
+  static const String bucketName = 'alat_images'; 
 
-  // CREATE (sudah benar dari sebelumnya, tapi konsisten nama kolom)
+  // CREATE 
   Future<void> createAlat(Alat alat, Uint8List? imageBytes, String? fileName) async {
     String? imageUrl;
 
@@ -26,15 +26,15 @@ class AlatService {
     }
 
     await _supabase.from('alat').insert({
-      'nama_alat': alat.namaAlat.trim(),
-      'id_kategori': alat.idKategori,
-      'stok': alat.stok,
-      'status': alat.status,
-      'gambar': imageUrl, // ← FIX: pakai 'gambar' sesuai database
-    });
+  'nama_alat': alat.namaAlat.trim(),
+  'id_kategori': alat.idKategori,
+  'stok': alat.stok,
+  'gambar': imageUrl,
+  'status': 'tersedia', 
+});
   }
 
-  // UPDATE (sudah diperbaiki)
+  // UPDATE 
   Future<void> updateAlat(int id, Alat updatedAlat, Uint8List? newImageBytes) async {
     try {
       String? newImageUrl = updatedAlat.gambar;
@@ -46,7 +46,6 @@ class AlatService {
         await _supabase.storage.from(bucketName).uploadBinary(path, newImageBytes, fileOptions: const FileOptions(contentType: 'image/jpeg'));
         newImageUrl = _supabase.storage.from(bucketName).getPublicUrl(path);
 
-        // Hapus gambar lama kalau ada
         if (updatedAlat.gambar != null && updatedAlat.gambar!.isNotEmpty) {
           final oldPath = updatedAlat.gambar!.split('/').last;
           try {
@@ -56,18 +55,18 @@ class AlatService {
       }
 
       await _supabase.from('alat').update({
-        'nama_alat': updatedAlat.namaAlat.trim(),
-        'id_kategori': updatedAlat.idKategori,
-        'stok': updatedAlat.stok,
-        'status': updatedAlat.status,
-        'gambar': newImageUrl, // ← FIX: pakai 'gambar'
-      }).eq('id_alat', id);
+  'nama_alat': updatedAlat.namaAlat.trim(),
+  'id_kategori': updatedAlat.idKategori,
+  'stok': updatedAlat.stok,
+  'status': 'tersedia', 
+  'gambar': newImageUrl,
+}).eq('id_alat', id);
     } catch (e) {
       throw Exception('Gagal update alat: $e');
     }
   }
 
-  // DELETE (sudah benar dari sebelumnya)
+  // DELETE 
   Future<void> deleteAlat(int id) async {
     try {
       final alatData = await _supabase
@@ -89,7 +88,7 @@ class AlatService {
     }
   }
 
-  // getAllAlat (sudah ok, tapi tambah debug kalau perlu)
+  // getAllAlat 
   Future<List<Alat>> getAllAlat({String? kategoriFilter}) async {
     try {
       dynamic query = _supabase.from('alat');

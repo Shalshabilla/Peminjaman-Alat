@@ -29,11 +29,9 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF0D47A1)),
       ),
-      // JANGAN pakai home: kalau sudah pakai initialRoute + routes punya '/'
-      initialRoute: '/', // mulai dari route '/' yang ada di routes.dart
-      routes: routes, // routes.dart sudah punya '/' → SplashScreen
+      initialRoute: '/', 
+      routes: routes, 
       onGenerateInitialRoutes: (initialRoute) {
-        // Opsional: bisa ditambahkan kalau mau custom behavior saat start
         return [
           MaterialPageRoute(
             builder: (context) => routes[initialRoute]!(context),

@@ -7,7 +7,7 @@ class Alat {
   final String? gambar;
   final DateTime? createdAt;
 
-  String? namaKategori; // diisi manual dari tabel kategori
+  String? namaKategori; 
 
   Alat({
     required this.idAlat,

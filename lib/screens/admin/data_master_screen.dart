@@ -1,7 +1,4 @@
-// lib/screens/admin/data_master_screen.dart
-
 import 'package:flutter/material.dart';
-import 'read_user_screen.dart';      // sesuaikan path jika beda
 import 'read_alat_screen.dart';
 import 'read_kategori_screen.dart';
 import '../../widgets/admin_bottom_navbar.dart';
@@ -42,7 +39,7 @@ class DataMasterScreen extends StatelessWidget {
               title: 'Data User',
               onTap: () => Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const UserListScreen()),
+                MaterialPageRoute(builder: (_) => const ReadAlatScreen()),
               ),
               navy: navy,
             ),

@@ -20,46 +20,44 @@ class _AuthWrapperState extends State<AuthWrapper> {
   }
 
   Future<void> _redirectBasedOnAuth() async {
-    final supabase = Supabase.instance.client;
-    final session = supabase.auth.currentSession;
+  final supabase = Supabase.instance.client;
+  final session = supabase.auth.currentSession;
 
-    if (session == null) {
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, '/login');
-      }
-      return;
+  if (session == null) {
+    if (mounted) {
+      Navigator.pushReplacementNamed(context, '/login');
     }
+    return;
+  }
 
-    try {
-      final response = await supabase
-          .from('users')
-          .select('role')
-          .eq('id', session.user.id)
-          .single();   // lebih ketat daripada maybeSingle
+  try {
+    // Ambil role dari JWT metadata (userMetadata)
+    final jwtRole = session.user.userMetadata?['role'] as String?;
+    final role = (jwtRole ?? 'peminjam').trim().toLowerCase();
 
-      final role = (response['role'] as String?)?.toLowerCase().trim() ?? 'peminjam';
+    print('Role dari JWT metadata: $role'); // debug biar tahu
 
-      if (!mounted) return;
+    if (!mounted) return;
 
-      switch (role) {
-        case 'admin':
-          Navigator.pushReplacementNamed(context, '/admin/dashboard');
-          break;
-        case 'petugas':
-          Navigator.pushReplacementNamed(context, '/petugas/dashboard');
-          break;
-        default:
-          Navigator.pushReplacementNamed(context, '/peminjam/dashboard');
-          break;
-      }
-    } catch (e) {
-      debugPrint('AuthWrapper error: $e');
-      await supabase.auth.signOut();
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, '/login');
-      }
+    switch (role) {
+      case 'admin':
+        Navigator.pushReplacementNamed(context, '/admin/dashboard');
+        break;
+      case 'petugas':
+        Navigator.pushReplacementNamed(context, '/petugas/dashboard');
+        break;
+      default:
+        Navigator.pushReplacementNamed(context, '/peminjam/dashboard');
+        break;
+    }
+  } catch (e) {
+    debugPrint('AuthWrapper error: $e');
+    await supabase.auth.signOut();
+    if (mounted) {
+      Navigator.pushReplacementNamed(context, '/login');
     }
   }
+}
 
   @override
   Widget build(BuildContext context) {

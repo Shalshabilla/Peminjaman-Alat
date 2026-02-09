@@ -266,6 +266,12 @@
       "languageVersion": "3.6"
     },
     {
+      "name": "intl",
+      "rootUri": "file:///C:/Users/Shalshabillagusti/AppData/Local/Pub/Cache/hosted/pub.dev/intl-0.20.2",
+      "packageUri": "lib/",
+      "languageVersion": "3.3"
+    },
+    {
       "name": "jwt_decode",
       "rootUri": "file:///C:/Users/Shalshabillagusti/AppData/Local/Pub/Cache/hosted/pub.dev/jwt_decode-0.3.1",
       "packageUri": "lib/",
@@ -650,7 +656,7 @@
       "languageVersion": "3.7"
     }
   ],
-  "generated": "2026-02-09T10:42:58.970035Z",
+  "generated": "2026-02-09T22:45:15.568213Z",
   "generator": "pub",
   "generatorVersion": "3.7.0",
   "flutterRoot": "file:///C:/Users/flutter_windows_3.22.3-stable/flutter",

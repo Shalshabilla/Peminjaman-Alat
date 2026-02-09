@@ -31,11 +31,10 @@ Future<String> login(String email, String password) async {
     // 3. Update metadata JWT supaya role tersimpan di token (untuk policy JWT)
     await _client.auth.updateUser(
       UserAttributes(
-        data: {'role': role},  // ini akan masuk ke auth.jwt() ->> 'role'
+        data: {'role': role}, 
       ),
     );
 
-    // Optional: Print untuk debug
     print('Role berhasil disimpan di metadata: $role');
 
     // 4. Return role
