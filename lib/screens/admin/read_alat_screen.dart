@@ -18,15 +18,41 @@ class _ReadAlatScreenState extends State<ReadAlatScreen> {
   String _searchQuery = '';
   String _selectedCategory = 'Semua';
   List<Alat> _allAlat = [];
-  final List<String> _categories = ['Semua', 'Penyimpanan', 'Perangkat', 'Jaringan', 'Kabel'];
 
-  final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey = GlobalKey<RefreshIndicatorState>();
+  final List<String> _categories = [
+    'Semua',
+    'Penyimpanan',
+    'Perangkat',
+    'Jaringan',
+    'Kabel'
+  ];
+
+  Map<int, String> _kategoriMap = {}; // ✅ TAMBAHAN
+
+  final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
+      GlobalKey<RefreshIndicatorState>();
 
   @override
   void initState() {
     super.initState();
+    _loadKategori(); // ✅ TAMBAHAN
+
     _searchController.addListener(() {
-      setState(() => _searchQuery = _searchController.text.trim().toLowerCase());
+      setState(() =>
+          _searchQuery = _searchController.text.trim().toLowerCase());
+    });
+  }
+
+  // ✅ TAMBAHAN
+  Future<void> _loadKategori() async {
+    final data = await Supabase.instance.client
+        .from('kategori')
+        .select('id_kategori, nama_kategori');
+
+    setState(() {
+      _kategoriMap = {
+        for (var k in data) k['id_kategori']: k['nama_kategori']
+      };
     });
   }
 
@@ -38,40 +64,44 @@ class _ReadAlatScreenState extends State<ReadAlatScreen> {
 
   List<Alat> get _filteredAlat {
     return _allAlat.where((alat) {
-      final matchSearch = alat.namaAlat.toLowerCase().contains(_searchQuery);
-      final matchCategory = _selectedCategory == 'Semua' || alat.namaKategori == _selectedCategory;
+      final matchSearch =
+          alat.namaAlat.toLowerCase().contains(_searchQuery);
+
+      final kategori = alat.namaKategori ?? '';
+
+      final matchCategory = _selectedCategory == 'Semua' ||
+          kategori == _selectedCategory;
+
       return matchSearch && matchCategory;
     }).toList();
   }
 
-  // Refresh sederhana (force rebuild stream)
   Future<void> _refresh() async {
     setState(() {});
-    print('Refresh sederhana dipanggil');
   }
 
-  // Manual fetch data lengkap (untuk memastikan update terlihat)
   Future<void> _manualRefresh() async {
     try {
       final response = await Supabase.instance.client
           .from('alat')
-          .select('''
-            id_alat, id_kategori, nama_alat, stok, status, gambar, created_at,
-            kategori!inner (nama_kategori)
-          ''')
+          .select(
+              'id_alat, id_kategori, nama_alat, stok, status, gambar, created_at')
           .order('created_at', ascending: false);
 
       setState(() {
-        _allAlat = response.map((json) => Alat.fromJson(json)).toList();
-        print('Manual refresh berhasil: ${_allAlat.length} alat dimuat ulang');
+        _allAlat = response.map((map) {
+          final alat = Alat.fromJson(map);
+          alat.namaKategori = _kategoriMap[alat.idKategori] ?? 'Tidak diketahui';
+          return alat;
+        }).toList();
       });
     } catch (e) {
-      print('Error manual refresh: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Gagal muat ulang data: $e')),
       );
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -164,9 +194,10 @@ class _ReadAlatScreenState extends State<ReadAlatScreen> {
                   onRefresh: _manualRefresh, // Pakai manual refresh untuk pull-to-refresh juga
                   child: StreamBuilder<List<Map<String, dynamic>>>(
                     stream: Supabase.instance.client
-                        .from('alat')
-                        .stream(primaryKey: ['id_alat'])
-                        .order('created_at', ascending: false),
+    .from('alat')
+    .stream(primaryKey: ['id_alat'])
+    .order('created_at', ascending: false),
+
                     builder: (context, snapshot) {
                       if (snapshot.hasError) {
                         print('Stream error: ${snapshot.error}');
@@ -180,25 +211,34 @@ class _ReadAlatScreenState extends State<ReadAlatScreen> {
                       print('Stream received ${data.length} items');
 
                       _allAlat = data.map((map) {
-                        print('Mapping: $map');
-                        return Alat.fromJson(map);
-                      }).toList();
+  final alat = Alat.fromJson(map);
+  alat.namaKategori =
+      _kategoriMap[alat.idKategori] ?? 'Tidak diketahui';
+  return alat;
+}).toList();
+
 
                       final filtered = _filteredAlat;
 
                       if (filtered.isEmpty) {
-                        return const Center(
-                          child: Text('Tidak ada alat ditemukan', style: TextStyle(color: Colors.grey, fontSize: 16)),
-                        );
-                      }
+  return Center(
+    child: Text(
+      _selectedCategory == 'Semua'
+          ? 'Belum ada data alat'
+          : 'Tidak ada alat di kategori $_selectedCategory',
+      style: const TextStyle(color: Colors.grey, fontSize: 16),
+    ),
+  );
+}
+
 
                       return GridView.builder(
                         padding: const EdgeInsets.all(12),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
+                        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: 220,
                           crossAxisSpacing: 12,
                           mainAxisSpacing: 12,
-                          childAspectRatio: 0.70,
+                          childAspectRatio: 0.68,
                         ),
                         itemCount: filtered.length,
                         itemBuilder: (context, index) {

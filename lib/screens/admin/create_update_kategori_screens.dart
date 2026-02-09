@@ -9,12 +9,12 @@ class AddEditKategoriDialog {
   }) {
     return showDialog<bool>(
       context: context,
-      builder: (dialogContext) => _AddEditDialogContent(kategori: kategori),
+      barrierDismissible: false,
+      builder: (_) => _AddEditDialogContent(kategori: kategori),
     );
   }
 }
 
-// Widget internal (bisa private karena hanya dipakai di sini)
 class _AddEditDialogContent extends StatefulWidget {
   final Kategori? kategori;
 
@@ -31,11 +31,15 @@ class __AddEditDialogContentState extends State<_AddEditDialogContent> {
   late TextEditingController _namaController;
   late TextEditingController _deskripsiController;
 
+  final Color primary = const Color(0xFF2F3A8F);
+
   @override
   void initState() {
     super.initState();
-    _namaController = TextEditingController(text: widget.kategori?.namaKategori ?? '');
-    _deskripsiController = TextEditingController(text: widget.kategori?.deskripsikategori ?? '');
+    _namaController =
+        TextEditingController(text: widget.kategori?.namaKategori ?? '');
+    _deskripsiController =
+        TextEditingController(text: widget.kategori?.deskripsikategori ?? '');
   }
 
   Future<void> _save() async {
@@ -50,92 +54,126 @@ class __AddEditDialogContentState extends State<_AddEditDialogContent> {
     try {
       if (widget.kategori == null) {
         await _service.insertKategori(newKategori);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Kategori berhasil ditambahkan')),
-          );
-        }
       } else {
         await _service.updateKategori(widget.kategori!.id!, newKategori);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Kategori berhasil diperbarui')),
-          );
-        }
       }
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal menyimpan: $e')),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Gagal menyimpan: $e')));
       }
     }
+  }
+
+  InputDecoration fieldStyle(String hint) {
+    return InputDecoration(
+      hintText: hint,
+      contentPadding:
+          const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(30),
+        borderSide: BorderSide(color: primary, width: 2),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(30),
+        borderSide: BorderSide(color: primary, width: 2),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final isEdit = widget.kategori != null;
 
-    return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: Text(
-        isEdit ? 'Perbarui Kategori' : 'Tambah Kategori',
-        style: TextStyle(color: Colors.blue[800], fontWeight: FontWeight.bold),
-      ),
-      content: Form(
-        key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextFormField(
-              controller: _namaController,
-              decoration: InputDecoration(
-                labelText: 'Nama Kategori',
-                hintText: 'Masukkan Nama Kategori',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(30)),
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(28),
+        ),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                isEdit ? 'Perbarui Kategori' : 'Tambah Kategori',
+                style: TextStyle(
+                  color: primary,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-              validator: (v) => v?.trim().isEmpty ?? true ? 'Wajib diisi' : null,
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _deskripsiController,
-              decoration: InputDecoration(
-                labelText: 'Deskripsi Kategori',
-                hintText: 'Masukkan Deskripsi Kategori',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(30)),
-              ),
-              validator: (v) => v?.trim().isEmpty ?? true ? 'Wajib diisi' : null,
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context, false),
-          child: Text(
-            'Batal',
-            style: TextStyle(color: Colors.blue[800]),
-          ),
-        ),
-        FilledButton(
-          style: FilledButton.styleFrom(
-            backgroundColor: Colors.blue[800],
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          ),
-          onPressed: _save,
-          child: const Text('Simpan', style: TextStyle(color: Colors.white)),
-        ),
-      ],
-    );
-  }
+              const SizedBox(height: 20),
 
-  @override
-  void dispose() {
-    _namaController.dispose();
-    _deskripsiController.dispose();
-    super.dispose();
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text('Nama Kategori',
+                    style: TextStyle(color: primary)),
+              ),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _namaController,
+                decoration: fieldStyle('Masukkan Nama Kategori'),
+                validator: (v) =>
+                    v!.trim().isEmpty ? 'Wajib diisi' : null,
+              ),
+
+              const SizedBox(height: 16),
+
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text('Deskripsi Alat',
+                    style: TextStyle(color: primary)),
+              ),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _deskripsiController,
+                decoration: fieldStyle('Masukkan Deskripsi Alat'),
+                validator: (v) =>
+                    v!.trim().isEmpty ? 'Wajib diisi' : null,
+              ),
+
+              const SizedBox(height: 20),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      style: OutlinedButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20)),
+                        side: BorderSide(color: primary, width: 2),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      child: Text('Batal',
+                          style: TextStyle(color: primary)),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _save,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primary,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20)),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      child: const Text('Simpan',
+                          style: TextStyle(color: Colors.white)),
+                    ),
+                  ),
+                ],
+              )
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

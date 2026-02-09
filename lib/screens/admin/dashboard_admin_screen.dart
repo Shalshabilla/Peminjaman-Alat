@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/dashboard_services.dart';
-import '../../widgets/admin_bottom_navbar.dart'; // sesuaikan path dengan benar
+import '../../widgets/admin_bottom_navbar.dart';
 
 class DashboardAdminScreen extends StatefulWidget {
   const DashboardAdminScreen({super.key});
@@ -146,7 +146,7 @@ class _DashboardAdminScreenState extends State<DashboardAdminScreen> {
                             crossAxisCount: 2,
                             crossAxisSpacing: 14,
                             mainAxisSpacing: 14,
-                            childAspectRatio: 1.65, // ← nilai ini membuat card lebih tinggi & aman
+                            childAspectRatio: 1.65, 
                             children: [
                               _buildStatCard(Icons.person, 'Total User', '$totalUser', navy),
                               _buildStatCard(Icons.work, 'Total Alat', '$totalAlat', navy),
@@ -224,7 +224,7 @@ class _DashboardAdminScreenState extends State<DashboardAdminScreen> {
                                   ),
                           ),
 
-                          const SizedBox(height: 120), // ruang untuk bottom nav
+                          const SizedBox(height: 120), 
                         ],
                       ),
                     ),
@@ -240,7 +240,7 @@ class _DashboardAdminScreenState extends State<DashboardAdminScreen> {
 
   Widget _buildStatCard(IconData icon, String title, String value, Color navy) {
     return Container(
-      clipBehavior: Clip.hardEdge, // mencegah elemen bocor keluar card
+      clipBehavior: Clip.hardEdge, 
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -260,7 +260,6 @@ class _DashboardAdminScreenState extends State<DashboardAdminScreen> {
           Icon(icon, size: 40, color: navy),
           const SizedBox(height: 8),
 
-          // Judul card: otomatis mengecil kalau terlalu panjang
           Flexible(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12.0),

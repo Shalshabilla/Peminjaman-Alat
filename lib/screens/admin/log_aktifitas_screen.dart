@@ -25,7 +25,7 @@ class _LogAktifitasScreenState extends State<LogAktifitasScreen> {
   Future<void> _loadAllLogs() async {
     try {
       // Ambil semua log, tanpa limit
-      final allLogs = await _service.getRecentActivities(limit: 100); // atau buat method baru tanpa limit
+      final allLogs = await _service.getRecentActivities(limit: 100); 
       setState(() {
         logs = allLogs;
         isLoading = false;

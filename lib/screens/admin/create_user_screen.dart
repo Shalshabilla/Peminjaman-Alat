@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../models/user_model.dart';
 import '../../services/user_services.dart';
+import '../../widgets/admin_bottom_navbar.dart';
 
 class AddUserScreen extends StatefulWidget {
   const AddUserScreen({super.key});
@@ -10,93 +10,113 @@ class AddUserScreen extends StatefulWidget {
 }
 
 class _AddUserScreenState extends State<AddUserScreen> {
-  final UserService _userService = UserService();
   final _formKey = GlobalKey<FormState>();
-  String _nama = '';
-  String _email = '';
-  String _kataSandi = '';
-  String _role = 'Admin'; // Default
+  final UserService _service = UserService();
 
-  final List<String> _roles = ['Admin', 'Petugas', 'Siswa', 'Peminjam'];
+  String nama = '';
+  String email = '';
+  String password = '';
+  String role = '';
 
-  void _saveUser() async {
-    if (_formKey.currentState!.validate()) {
-      final user = AppUser(
-        id: '', // Supabase will generate
-        nama: _nama,
-        email: _email,
-        katasandi: _kataSandi,
-        role: _role,
+  final roles = ['Admin', 'Petugas', 'Peminjam'];
+
+  InputDecoration _input(String hint) => InputDecoration(
+        hintText: hint,
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
       );
-      await _userService.createUser(user);
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Pengguna ditambahkan')));
-    }
+
+Future<void> _save() async {
+  if (!_formKey.currentState!.validate()) return;
+
+  try {
+    await _service.createUser(
+  nama: nama,
+  email: email,
+  password: password,
+  role: role,
+);
+
+
+    Navigator.pop(context, true);
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Gagal menambahkan user: $e')),
+    );
   }
+}
+
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF5F6FA),
       appBar: AppBar(
-        leading: const Icon(Icons.arrow_back, color: Colors.black),
-        title: const Text('Tambah Pengguna', style: TextStyle(color: Colors.black)),
+        title: const Text('Tambah Pengguna'),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        foregroundColor: const Color(0xFF2F345D),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(20),
         child: Form(
           key: _formKey,
           child: Column(
             children: [
               TextFormField(
-                onChanged: (value) => _nama = value,
-                decoration: const InputDecoration(labelText: 'Nama', hintText: 'Masukkan Nama'),
-                validator: (value) => value!.isEmpty ? 'Nama tidak boleh kosong' : null,
+                decoration: _input('Masukkan Nama'),
+                onChanged: (v) => nama = v,
+                validator: (v) => v!.isEmpty ? 'Wajib diisi' : null,
               ),
               const SizedBox(height: 16),
               TextFormField(
-                onChanged: (value) => _email = value,
-                decoration: const InputDecoration(labelText: 'Email', hintText: 'Masukkan Email'),
-                validator: (value) => value!.isEmpty ? 'Email tidak boleh kosong' : null,
+                decoration: _input('Masukkan Email'),
+                onChanged: (v) => email = v,
               ),
               const SizedBox(height: 16),
               TextFormField(
-                onChanged: (value) => _kataSandi = value,
-                decoration: const InputDecoration(labelText: 'Kata Sandi', hintText: 'Masukkan Kata Sandi'),
+                decoration: _input('Masukkan Kata Sandi'),
                 obscureText: true,
-                validator: (value) => value!.isEmpty ? 'Kata Sandi tidak boleh kosong' : null,
+                onChanged: (v) => password = v,
               ),
               const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: _role,
-                decoration: const InputDecoration(labelText: 'Role'),
-                items: _roles.map((role) => DropdownMenuItem(value: role, child: Text(role))).toList(),
-                onChanged: (value) => setState(() => _role = value!),
+              DropdownButtonFormField(
+                decoration: _input('Masukkan Role'),
+                items: roles
+                    .map((e) =>
+                        DropdownMenuItem(value: e, child: Text(e)))
+                    .toList(),
+                onChanged: (v) => role = v!,
+                validator: (v) => v == null ? 'Pilih role' : null,
               ),
               const SizedBox(height: 32),
               SizedBox(
                 width: double.infinity,
+                height: 52,
                 child: ElevatedButton(
-                  onPressed: _saveUser,
-                  child: const Text('Simpan'),
+                  onPressed: _save,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2F345D),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  child: const Text(
+                    'Simpan',
+                    style: TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
                 ),
               ),
             ],
           ),
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        selectedItemColor: const Color(0xFF3F51B5),
-        unselectedItemColor: Colors.grey,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.layers), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.camera_alt), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.history), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: ''),
-        ],
-      ),
+      bottomNavigationBar:
+          AdminBottomNavbar(currentIndex: 1, onTap: (_) {}),
     );
   }
 }

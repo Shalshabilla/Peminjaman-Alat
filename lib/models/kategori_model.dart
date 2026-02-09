@@ -1,5 +1,5 @@
 class Kategori {
-  final int? id;
+  final int? id; // nullable karena insert tidak butuh id
   final String namaKategori;
   final String deskripsikategori;
 
@@ -9,15 +9,15 @@ class Kategori {
     required this.deskripsikategori,
   });
 
-  factory Kategori.fromMap(Map<String, dynamic> map) {
+  factory Kategori.fromJson(Map<String, dynamic> json) {
     return Kategori(
-      id: map['id'] as int?,
-      namaKategori: map['nama_kategori'] as String? ?? '',
-      deskripsikategori: map['deskripsi_kategori'] as String? ?? '',
+      id: json['id_kategori'] as int?,
+      namaKategori: json['nama_kategori'] as String? ?? '',
+      deskripsikategori: json['deskripsi_kategori'] as String? ?? '',
     );
   }
 
-  Map<String, dynamic> toMap() {
+  Map<String, dynamic> toJson() {
     return {
       'nama_kategori': namaKategori,
       'deskripsi_kategori': deskripsikategori,

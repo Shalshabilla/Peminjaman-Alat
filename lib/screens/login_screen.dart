@@ -38,64 +38,54 @@ class _LoginScreenState extends State<LoginScreen> {
 
   final authService = AuthService();
 
-  Future<void> handleLogin() async {
-    setState(() {
-      emailError = null;
-      passError = null;
-      isError = false;
-      isSuccess = false;
+ Future<void> handleLogin() async {
+  setState(() {
+    emailError = null;
+    passError = null;
+    isError = false;
+    isSuccess = false;
+  });
+
+  if (!_formKey.currentState!.validate()) return;
+
+  setState(() => isLoading = true);
+
+  try {
+    final role = await authService.login(
+      emailC.text.trim(),
+      passC.text,
+    );
+
+    setState(() => isSuccess = true);
+
+    if (!mounted) return;
+
+    Future.delayed(const Duration(milliseconds: 600), () {
+      if (role == 'Admin') {
+        Navigator.pushReplacementNamed(context, '/admin');
+      } else if (role == 'Petugas') {
+        Navigator.pushReplacementNamed(context, '/petugas');
+      } else {
+        Navigator.pushReplacementNamed(context, '/peminjam');
+      }
     });
-
-    if (!_formKey.currentState!.validate()) return;
-
-    setState(() => isLoading = true);
-
-    try {
-      final result = await authService.login(
-        emailC.text.trim(),
-        passC.text,
-      );
-
-      setState(() {
-        isSuccess = true;
-      });
-
-      final role = result?['role'] as String?;
-
-      if (!mounted) return;
-
-      Future.delayed(const Duration(milliseconds: 800), () {
-        switch (role) {
-          case 'admin':
-            Navigator.pushReplacementNamed(context, '/admin');
-            break;
-          case 'petugas':
-            Navigator.pushReplacementNamed(context, '/petugas');
-            break;
-          default:
-            Navigator.pushReplacementNamed(context, '/peminjam');
-        }
-      });
-    } on AuthException catch (e) {
-      setState(() {
-        if (e.message.contains('Invalid login credentials')) {
-          passError = 'Email atau kata sandi salah';
-        } else {
-          passError = e.message;
-        }
-        isError = true;
-      });
-      _formKey.currentState!.validate();
-    } catch (e) {
-      setState(() {
-        passError = 'Terjadi kesalahan: $e';
-        isError = true;
-      });
-      _formKey.currentState!.validate();
-    } finally {
-      setState(() => isLoading = false);
-    }
+  } on AuthException catch (_) {
+    setState(() {
+      passError = 'Email atau kata sandi salah';
+      isError = true;
+    });
+    _formKey.currentState!.validate();
+  } catch (e) {
+    setState(() {
+      passError = e.toString();
+      isError = true;
+    });
+    _formKey.currentState!.validate();
+  } finally {
+    setState(() => isLoading = false);
   }
+}
+
 
   @override
   Widget build(BuildContext context) {

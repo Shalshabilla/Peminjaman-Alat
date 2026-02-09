@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/user_model.dart';
 import '../../services/user_services.dart';
+import '../../widgets/admin_bottom_navbar.dart';
 import 'create_user_screen.dart';
 import 'update_user_screen.dart';
 
@@ -11,92 +12,88 @@ class UserListScreen extends StatefulWidget {
   State<UserListScreen> createState() => _UserListScreenState();
 }
 
-class _UserListScreenState extends State<UserListScreen> with SingleTickerProviderStateMixin {
-  final UserService _userService = UserService();
-  late TabController _tabController;
+class _UserListScreenState extends State<UserListScreen> {
+  final UserService _service = UserService();
+
   List<AppUser> _allUsers = [];
   List<AppUser> _filteredUsers = [];
-  String _searchQuery = '';
-  String _currentTab = 'Semua';
+
+  String _search = '';
+  String _category = 'Semua';
+
+  final List<String> categories = ['Semua', 'Admin', 'Petugas', 'Peminjam'];
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
-    _tabController.addListener(_handleTabChange);
     _fetchUsers();
   }
 
   Future<void> _fetchUsers() async {
-    _allUsers = await _userService.getAllUsers();
-    _filterUsers();
+    _allUsers = await _service.getAllUsers();
+    _applyFilter();
+  }
+
+  void _applyFilter() {
+    _filteredUsers = _allUsers.where((u) {
+      final matchSearch = u.nama.toLowerCase().contains(_search.toLowerCase()) ||
+          u.email.toLowerCase().contains(_search.toLowerCase());
+
+      final matchCategory =
+          _category == 'Semua' || u.role == _category;
+
+      return matchSearch && matchCategory;
+    }).toList();
+
     setState(() {});
   }
 
-  void _handleTabChange() {
-    final tabs = ['Semua', 'Admin', 'Petugas', 'Siswa'];
-    _currentTab = tabs[_tabController.index];
-    _filterUsers();
-  }
-
-  void _filterUsers() {
-    if (_currentTab == 'Semua') {
-      _filteredUsers = _allUsers;
-    } else {
-      _filteredUsers = _allUsers.where((user) => user.role == _currentTab).toList();
-    }
-    if (_searchQuery.isNotEmpty) {
-      _filteredUsers = _filteredUsers.where((user) =>
-          user.nama.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          user.email.toLowerCase().contains(_searchQuery.toLowerCase())).toList();
-    }
-    setState(() {});
-  }
-
-  void _showDeleteDialog(AppUser user) {
+  void _confirmDelete(AppUser user) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        backgroundColor: Colors.white,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 40),
-            const SizedBox(height: 8),
-            const Text('Hapus Pengguna', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Icon(Icons.warning_amber_rounded,
+                color: Colors.red, size: 40),
+            const SizedBox(height: 12),
+            const Text(
+              'Hapus Pengguna',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 8),
             const Text('Anda yakin ingin menghapus pengguna?'),
           ],
         ),
+        actionsAlignment: MainAxisAlignment.spaceEvenly,
         actions: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                ),
-                child: const Text('Batal'),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
               ),
-              ElevatedButton(
-                onPressed: () async {
-                  await _userService.deleteUser(user.id);
-                  Navigator.pop(context);
-                  _fetchUsers();
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Pengguna dihapus')));
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                ),
-                child: const Text('Hapus'),
+            ),
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
               ),
-            ],
+            ),
+            onPressed: () async {
+              await _service.deleteUser(user.id);
+              Navigator.pop(context);
+              _fetchUsers();
+            },
+            child: const Text('Hapus'),
           ),
         ],
       ),
@@ -106,119 +103,164 @@ class _UserListScreenState extends State<UserListScreen> with SingleTickerProvid
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF5F6FA),
       appBar: AppBar(
-        leading: const Icon(Icons.arrow_back, color: Colors.black),
-        title: const Text('Daftar Pengguna', style: TextStyle(color: Colors.black)),
+        title: const Text('Daftar Pengguna'),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        foregroundColor: const Color(0xFF2F345D),
         actions: [
           IconButton(
             icon: const CircleAvatar(
-              backgroundColor: Color(0xFFBDBDBD),
+              backgroundColor: Color(0xFF2F345D),
               child: Icon(Icons.person_add, color: Colors.white),
             ),
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AddUserScreen())).then((_) => _fetchUsers()),
+           onPressed: () async {
+  final result = await Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => const AddUserScreen(),
+    ),
+  );
+
+  if (result == true) {
+    _fetchUsers(); 
+  }
+},
+
           ),
         ],
       ),
       body: Column(
         children: [
+          // 🔍 SEARCH
           Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(16),
             child: TextField(
-              onChanged: (value) {
-                _searchQuery = value;
-                _filterUsers();
+              onChanged: (v) {
+                _search = v;
+                _applyFilter();
               },
               decoration: InputDecoration(
                 hintText: 'Cari pengguna...',
-                prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(30)),
+                prefixIcon: const Icon(Icons.search),
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(30),
+                  borderSide: BorderSide.none,
+                ),
               ),
             ),
           ),
-          TabBar(
-            controller: _tabController,
-            labelColor: Colors.black,
-            unselectedLabelColor: Colors.grey,
-            indicatorColor: const Color(0xFF3F51B5),
-            tabs: const [
-              Tab(text: 'Semua'),
-              Tab(text: 'Admin'),
-              Tab(text: 'Petugas'),
-              Tab(text: 'Siswa'),
-            ],
-          ),
-          Expanded(
-            child: RefreshIndicator(
-              onRefresh: _fetchUsers,
-              child: ListView.builder(
-                itemCount: _filteredUsers.length,
-                itemBuilder: (context, index) {
-                  final user = _filteredUsers[index];
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          backgroundColor: const Color(0xFFBDBDBD),
-                          child: Text(user.nama[0].toUpperCase(), style: const TextStyle(color: Colors.white)),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(user.nama, style: const TextStyle(fontWeight: FontWeight.bold)),
-                              Text(user.email, style: const TextStyle(color: Colors.grey)),
-                            ],
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: const Color(0xFF2196F3)),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(user.role),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.edit, color: Color(0xFF2196F3)),
-                          onPressed: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (_) => UpdateUserScreen(user: user)),
-                          ).then((_) => _fetchUsers()),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.red),
-                          onPressed: () => _showDeleteDialog(user),
-                        ),
-                      ],
+
+          // 🏷️ CATEGORY
+          SizedBox(
+            height: 42,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              children: categories.map((c) {
+                final active = _category == c;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: ChoiceChip(
+                    label: Text(c),
+                    selected: active,
+                    selectedColor: const Color(0xFF2F345D),
+                    labelStyle: TextStyle(
+                      color: active ? Colors.white : Colors.black,
+                      fontWeight: FontWeight.w600,
                     ),
-                  );
-                },
-              ),
+                    onSelected: (_) {
+                      _category = c;
+                      _applyFilter();
+                    },
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+
+          // 👥 USER LIST
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: _filteredUsers.length,
+              itemBuilder: (_, i) {
+                final u = _filteredUsers[i];
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        backgroundColor: const Color(0xFFE3E6F3),
+                        child: Text(
+                          u.nama[0].toUpperCase(),
+                          style: const TextStyle(
+                            color: Color(0xFF2F345D),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              u.nama,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              u.email,
+                              style: const TextStyle(color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.edit,
+                            color: Color(0xFF2196F3)),
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                UpdateUserScreen(user: u),
+                          ),
+                        ).then((_) => _fetchUsers()),
+                      ),
+                      IconButton(
+                        icon:
+                            const Icon(Icons.delete, color: Colors.red),
+                        onPressed: () => _confirmDelete(u),
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
           ),
         ],
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        selectedItemColor: const Color(0xFF3F51B5),
-        unselectedItemColor: Colors.grey,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.layers), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.camera_alt), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.history), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: ''),
-        ],
+      bottomNavigationBar: AdminBottomNavbar(
+        currentIndex: 1,
+        onTap: (_) {},
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
   }
 }

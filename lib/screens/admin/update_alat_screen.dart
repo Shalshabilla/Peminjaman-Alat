@@ -106,14 +106,10 @@ class _AlatUpdateScreenState extends State<AlatUpdateScreen> {
 
     print('Row setelah update: $updatedRows');
 
-    if (updatedRows.isEmpty) {
-      print('WARNING: Update tidak mengubah row apapun (nilai mungkin sama dengan DB)');
-      // Optional: kalau ingin force update meskipun sama, tambah field dummy seperti updated_at = now()
-      await Supabase.instance.client
-          .from('alat')
-          .update({'updated_at': DateTime.now().toIso8601String()}) // dummy field kalau ada kolom updated_at
-          .eq('id_alat', widget.alat.idAlat);
-    }
+if (updatedRows.isEmpty) {
+  print('Update tidak mengubah data karena nilainya sama');
+}
+
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
