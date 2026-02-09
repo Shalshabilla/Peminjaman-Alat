@@ -30,33 +30,23 @@ class PeminjamBottomNavbar extends StatelessWidget {
         backgroundColor: navy,
         selectedItemColor: Colors.white,
         unselectedItemColor: Colors.white70,
-        selectedLabelStyle: const TextStyle(
-          fontWeight: FontWeight.w600,
-          fontSize: 12,
-        ),
-        unselectedLabelStyle: const TextStyle(
-          fontWeight: FontWeight.w500,
-          fontSize: 12,
-        ),
+        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 12),
         type: BottomNavigationBarType.fixed,
         elevation: 0,
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard),
-            label: 'Dashboard',
-          ),
+            icon: Icon(Icons.home), 
+            label: 'Beranda'),
           BottomNavigationBarItem(
-            icon: Icon(Icons.inventory_2), 
-            label: 'Alat',
-          ),
+            icon: Icon(Icons.assignment), 
+            label: 'Pengajuan'),
           BottomNavigationBarItem(
-            icon: Icon(Icons.book_online), 
-            label: 'Peminjaman',
-          ),
+            icon: Icon(Icons.history), 
+            label: 'Riwayat'),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profil',
-          ),
+            icon: Icon(Icons.person), 
+            label: 'Profil'),
         ],
       ),
     );

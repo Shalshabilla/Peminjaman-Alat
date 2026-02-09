@@ -44,11 +44,13 @@ class _LoginScreenState extends State<LoginScreen> {
     passError = null;
     isError = false;
     isSuccess = false;
+    isLoading = true;
   });
 
-  if (!_formKey.currentState!.validate()) return;
-
-  setState(() => isLoading = true);
+  if (!_formKey.currentState!.validate()) {
+    setState(() => isLoading = false);
+    return;
+  }
 
   try {
     final role = await authService.login(
@@ -56,33 +58,52 @@ class _LoginScreenState extends State<LoginScreen> {
       passC.text,
     );
 
+    debugPrint('Login berhasil - Role: $role'); // <-- tambahkan ini untuk debug
+
     setState(() => isSuccess = true);
+
+    await Future.delayed(const Duration(milliseconds: 800));
 
     if (!mounted) return;
 
-    Future.delayed(const Duration(milliseconds: 600), () {
-      if (role == 'Admin') {
-        Navigator.pushReplacementNamed(context, '/admin');
-      } else if (role == 'Petugas') {
-        Navigator.pushReplacementNamed(context, '/petugas');
+    // Sinkronkan dengan AuthWrapper (gunakan 'peminjam' bukan 'siswa')
+    switch (role.toLowerCase().trim()) {
+  case 'admin':
+    Navigator.pushReplacementNamed(context, '/admin/dashboard');
+    break;
+  case 'petugas':
+    Navigator.pushReplacementNamed(context, '/petugas/dashboard');
+    break;
+  case 'peminjam':
+    Navigator.pushReplacementNamed(context, '/peminjam/dashboard');
+    break;
+  default:
+    debugPrint('Role tidak match: "$role"'); // <-- debug
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Role tidak dikenali: "$role"')),
+    );
+    Navigator.pushReplacementNamed(context, '/'); // kembali ke AuthWrapper
+}
+  } on AuthException catch (e) {
+    debugPrint('AuthException: ${e.message}'); // <-- sangat penting untuk debug
+    setState(() {
+      if (e.message.contains('Invalid login credentials')) {
+        passError = 'Email atau kata sandi salah';
       } else {
-        Navigator.pushReplacementNamed(context, '/peminjam');
+        passError = e.message;
       }
-    });
-  } on AuthException catch (_) {
-    setState(() {
-      passError = 'Email atau kata sandi salah';
       isError = true;
     });
-    _formKey.currentState!.validate();
   } catch (e) {
+    debugPrint('Login error lain: $e');
     setState(() {
-      passError = e.toString();
+      passError = 'Terjadi kesalahan: $e';
       isError = true;
     });
-    _formKey.currentState!.validate();
   } finally {
-    setState(() => isLoading = false);
+    if (mounted) {
+      setState(() => isLoading = false);
+    }
   }
 }
 

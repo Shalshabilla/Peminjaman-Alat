@@ -30,37 +30,26 @@ class PetugasBottomNavbar extends StatelessWidget {
         backgroundColor: navy,
         selectedItemColor: Colors.white,
         unselectedItemColor: Colors.white70,
-        selectedLabelStyle: const TextStyle(
-          fontWeight: FontWeight.w600,
-          fontSize: 12,
-        ),
-        unselectedLabelStyle: const TextStyle(
-          fontWeight: FontWeight.w500,
-          fontSize: 12,
-        ),
+        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 12),
         type: BottomNavigationBarType.fixed,
         elevation: 0,
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard),
-            label: 'Dashboard',
-          ),
+            icon: Icon(Icons.home), 
+            label: 'Beranda'),
           BottomNavigationBarItem(
-            icon: Icon(Icons.book_online), // atau Icons.assignment
-            label: 'Peminjaman',
-          ),
+            icon: Icon(Icons.assignment_turned_in), 
+            label: 'Pengajuan'),
           BottomNavigationBarItem(
-            icon: Icon(Icons.assignment_return),
-            label: 'Pengembalian',
-          ),
+            icon: Icon(Icons.download_for_offline), 
+            label: 'Cetak'),
           BottomNavigationBarItem(
-            icon: Icon(Icons.bar_chart), // atau Icons.analytics
-            label: 'Laporan',
-          ),
+            icon: Icon(Icons.description), 
+            label: 'Laporan'),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profil',
-          ),
+            icon: Icon(Icons.manage_accounts), 
+            label: 'Profil'),
         ],
       ),
     );
