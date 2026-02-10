@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../widgets/peminjam_bottom_navbar.dart'; // sesuaikan nama widget navbar peminjam
+import '../../widgets/peminjam_bottom_navbar.dart';
 
 class ProfilPeminjamScreen extends StatefulWidget {
   const ProfilPeminjamScreen({super.key});
@@ -57,33 +57,20 @@ class _ProfilPeminjamScreenState extends State<ProfilPeminjamScreen> {
             children: [
               Icon(Icons.warning_amber_rounded, color: Colors.red),
               SizedBox(width: 12),
-              Text(
-                "Keluar",
-                style: TextStyle(
-                  color: Colors.red,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              Text("Keluar",
+                  style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
             ],
           ),
-          content: const Text(
-            "Anda yakin ingin keluar dari akun?",
-            style: TextStyle(fontSize: 16),
-          ),
+          content: const Text("Anda yakin ingin keluar dari akun?"),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text(
-                "Batal",
-                style: TextStyle(color: Colors.grey),
-              ),
+              child: const Text("Batal"),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text(
-                "Keluar",
-                style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
-              ),
+              child: const Text("Keluar",
+                  style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
             ),
           ],
         );
@@ -91,51 +78,29 @@ class _ProfilPeminjamScreenState extends State<ProfilPeminjamScreen> {
     );
 
     if (confirm == true) {
-      await _performLogout();
-    }
-  }
-
-  Future<void> _performLogout() async {
-    try {
       await Supabase.instance.client.auth.signOut();
       if (!mounted) return;
-      Navigator.pushNamedAndRemoveUntil(
-        context,
-        '/login',
-        (route) => false,
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal logout: $e')),
-      );
+      Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     const navy = Color(0xFF0D47A1);
-    const navyShadow = Color(0xFF0D47A1);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
+
       appBar: AppBar(
         toolbarHeight: 76,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
+        automaticallyImplyLeading: false, // ❗ penting biar ga bentrok navbar
         title: const Text(
           'Profil',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-          ),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
         ),
         backgroundColor: navy,
-        elevation: 0,
       ),
+
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _user == null
@@ -161,7 +126,7 @@ class _ProfilPeminjamScreenState extends State<ProfilPeminjamScreen> {
                         ),
                         child: Column(
                           children: [
-                            const Icon(Icons.person, size: 80, color: Color(0xFF0D47A1)),
+                            const Icon(Icons.person, size: 80, color: navy),
                             const SizedBox(height: 24),
                             _buildProfileField('Nama', _user!['nama'] ?? '-', navy),
                             const SizedBox(height: 16),
@@ -178,23 +143,21 @@ class _ProfilPeminjamScreenState extends State<ProfilPeminjamScreen> {
                         width: double.infinity,
                         child: ElevatedButton.icon(
                           onPressed: _showLogoutDialog,
-                          icon: const Icon(Icons.logout, color: Colors.white),
-                          label: const Text('Keluar', style: TextStyle(fontSize: 16)),
+                          icon: const Icon(Icons.logout),
+                          label: const Text('Keluar'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: navy,
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
                           ),
                         ),
                       ),
                     ],
                   ),
                 ),
+
       bottomNavigationBar: PeminjamBottomNavbar(
-        currentIndex: 3, // sesuaikan index Profil di navbar peminjam (biasanya 3 atau 4)
+        currentIndex: 3,
         onTap: (index) => _handlePeminjamNav(context, index),
       ),
     );
@@ -204,14 +167,8 @@ class _ProfilPeminjamScreenState extends State<ProfilPeminjamScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 14,
-            color: navy,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+        Text(label,
+            style: TextStyle(fontSize: 14, color: navy, fontWeight: FontWeight.w600)),
         const SizedBox(height: 6),
         Container(
           width: double.infinity,
@@ -220,10 +177,7 @@ class _ProfilPeminjamScreenState extends State<ProfilPeminjamScreen> {
             border: Border.all(color: Colors.grey.shade300),
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Text(
-            value,
-            style: const TextStyle(fontSize: 16),
-          ),
+          child: Text(value, style: const TextStyle(fontSize: 16)),
         ),
       ],
     );
@@ -235,14 +189,13 @@ class _ProfilPeminjamScreenState extends State<ProfilPeminjamScreen> {
         Navigator.pushReplacementNamed(context, '/peminjam/dashboard');
         break;
       case 1:
-        Navigator.pushReplacementNamed(context, '/peminjam/buku');
+        Navigator.pushReplacementNamed(context, '/peminjam/alat');
         break;
       case 2:
-        Navigator.pushReplacementNamed(context, '/peminjam/keranjang');
+        Navigator.pushReplacementNamed(context, '/peminjam/peminjaman');
         break;
-      case 3: // asumsi index 3 = Profil
-        // sudah di sini
-        break;
+      case 3:
+        break; // sudah di profil
     }
   }
 }

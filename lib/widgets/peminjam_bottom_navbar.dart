@@ -40,10 +40,10 @@ class PeminjamBottomNavbar extends StatelessWidget {
             label: 'Beranda'),
           BottomNavigationBarItem(
             icon: Icon(Icons.assignment), 
-            label: 'Pengajuan'),
+            label: 'Alat'),
           BottomNavigationBarItem(
             icon: Icon(Icons.history), 
-            label: 'Riwayat'),
+            label: 'Peminjaman'),
           BottomNavigationBarItem(
             icon: Icon(Icons.person), 
             label: 'Profil'),

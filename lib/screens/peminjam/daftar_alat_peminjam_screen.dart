@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/alat_model.dart';
-import '../../widgets/alat_item_peminjam.dart'; 
-import '../../widgets/peminjam_bottom_navbar.dart'; 
+import '../../widgets/alat_item_peminjam.dart';
+import '../../widgets/peminjam_bottom_navbar.dart';
 import 'form_peminjaman_screen.dart';
 
 class DaftarAlatPeminjamScreen extends StatefulWidget {
@@ -18,18 +18,9 @@ class _DaftarAlatPeminjamScreenState extends State<DaftarAlatPeminjamScreen> {
   String _selectedCategory = 'Semua';
 
   List<Alat> _allAlat = [];
-
-  final List<String> _categories = [
-    'Semua',
-    'Perangkat',
-    'Jaringan',
-    'Penyimpanan',
-    // tambahkan 'Kabel' dll jika perlu
-  ];
-
+  final List<String> _categories = ['Semua', 'Perangkat', 'Jaringan', 'Penyimpanan'];
   Map<int, String> _kategoriMap = {};
-
-  final Color primary = const Color(0xFF2F3A8F); // navy
+  final Color primary = const Color(0xFF2F3A8F);
 
   @override
   void initState() {
@@ -46,16 +37,9 @@ class _DaftarAlatPeminjamScreenState extends State<DaftarAlatPeminjamScreen> {
         .select('id_kategori, nama_kategori');
 
     setState(() {
-      _kategoriMap = {
-        for (var k in data) k['id_kategori'] as int: k['nama_kategori'] as String,
-      };
+      _kategoriMap = {for (var k in data) k['id_kategori'] as int: k['nama_kategori'] as String};
     });
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
+    _refreshData(); // load data setelah kategori siap
   }
 
   List<Alat> get _filteredAlat {
@@ -68,26 +52,18 @@ class _DaftarAlatPeminjamScreenState extends State<DaftarAlatPeminjamScreen> {
   }
 
   Future<void> _refreshData() async {
-    try {
-      final response = await Supabase.instance.client
-          .from('alat')
-          .select('id_alat, id_kategori, nama_alat, stok, status, gambar, created_at')
-          .order('created_at', ascending: false);
+    final response = await Supabase.instance.client
+        .from('alat')
+        .select('id_alat, id_kategori, nama_alat, stok, status, gambar, created_at')
+        .order('created_at', ascending: false);
 
-      setState(() {
-        _allAlat = response.map((map) {
-          final alat = Alat.fromJson(map);
-          alat.namaKategori = _kategoriMap[alat.idKategori] ?? 'Tidak diketahui';
-          return alat;
-        }).toList();
-      });
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal memuat data: $e')),
-        );
-      }
-    }
+    setState(() {
+      _allAlat = response.map((map) {
+        final alat = Alat.fromJson(map);
+        alat.namaKategori = _kategoriMap[alat.idKategori] ?? 'Tidak diketahui';
+        return alat;
+      }).toList();
+    });
   }
 
   @override
@@ -97,10 +73,6 @@ class _DaftarAlatPeminjamScreenState extends State<DaftarAlatPeminjamScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: primary),
-          onPressed: () => Navigator.pop(context),
-        ),
         title: Text(
           'Daftar Alat',
           style: TextStyle(color: primary, fontWeight: FontWeight.bold),
@@ -110,7 +82,7 @@ class _DaftarAlatPeminjamScreenState extends State<DaftarAlatPeminjamScreen> {
         children: [
           const SizedBox(height: 10),
 
-          // Search bar persis seperti screenshot
+          // SEARCH
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 16),
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -124,14 +96,13 @@ class _DaftarAlatPeminjamScreenState extends State<DaftarAlatPeminjamScreen> {
                 icon: Icon(Icons.search, color: primary),
                 hintText: 'Cari alat...',
                 border: InputBorder.none,
-                hintStyle: TextStyle(color: Colors.grey[600]),
               ),
             ),
           ),
 
           const SizedBox(height: 16),
 
-          // Filter chips
+          // FILTER CHIP
           SizedBox(
             height: 42,
             child: ListView.builder(
@@ -149,20 +120,13 @@ class _DaftarAlatPeminjamScreenState extends State<DaftarAlatPeminjamScreen> {
                       style: TextStyle(
                         color: isSelected ? Colors.white : primary,
                         fontSize: 13,
-                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                     selected: isSelected,
                     onSelected: (_) => setState(() => _selectedCategory = cat),
                     backgroundColor: Colors.white,
                     selectedColor: primary,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                      side: BorderSide(
-                        color: isSelected ? Colors.transparent : primary.withOpacity(0.5),
-                      ),
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     showCheckmark: false,
                   ),
                 );
@@ -172,6 +136,7 @@ class _DaftarAlatPeminjamScreenState extends State<DaftarAlatPeminjamScreen> {
 
           const SizedBox(height: 8),
 
+          // LIST ALAT
           Expanded(
             child: RefreshIndicator(
               onRefresh: _refreshData,
@@ -181,14 +146,9 @@ class _DaftarAlatPeminjamScreenState extends State<DaftarAlatPeminjamScreen> {
                     .stream(primaryKey: ['id_alat'])
                     .order('created_at', ascending: false),
                 builder: (context, snapshot) {
-                  if (snapshot.hasError) {
-                    return Center(child: Text('Error: ${snapshot.error}'));
-                  }
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
+                  if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
 
-                  final data = snapshot.data ?? [];
+                  final data = snapshot.data!;
                   _allAlat = data.map((map) {
                     final alat = Alat.fromJson(map);
                     alat.namaKategori = _kategoriMap[alat.idKategori] ?? 'Tidak diketahui';
@@ -196,25 +156,15 @@ class _DaftarAlatPeminjamScreenState extends State<DaftarAlatPeminjamScreen> {
                   }).toList();
 
                   final filtered = _filteredAlat;
-
-                  if (filtered.isEmpty) {
-                    return Center(
-                      child: Text(
-                        _selectedCategory == 'Semua'
-                            ? 'Belum ada data alat'
-                            : 'Tidak ada alat di kategori $_selectedCategory',
-                        style: const TextStyle(color: Colors.grey, fontSize: 16),
-                      ),
-                    );
-                  }
+                  if (filtered.isEmpty) return const Center(child: Text('Belum ada data alat'));
 
                   return GridView.builder(
                     padding: const EdgeInsets.all(16),
                     gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                      maxCrossAxisExtent: 200,          // agak lebih kecil agar mirip UI
+                      maxCrossAxisExtent: 200,
                       crossAxisSpacing: 16,
                       mainAxisSpacing: 16,
-                      childAspectRatio: 0.62,           // sesuaikan tinggi card
+                      childAspectRatio: 0.62,
                     ),
                     itemCount: filtered.length,
                     itemBuilder: (context, index) {
@@ -230,17 +180,11 @@ class _DaftarAlatPeminjamScreenState extends State<DaftarAlatPeminjamScreen> {
                           child: AlatItemPeminjam(
                             alat: alat,
                             onAjukanPeminjaman: () {
-                              // TODO: arahkan ke halaman form peminjaman
-                              // Contoh:
-                              // Navigator.push(
-                              //   context,
-                              //   MaterialPageRoute(
-                              //     builder: (context) => FormPeminjamanScreen(alat: alat),
-                              //   ),
-                              // );
-
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Ajukan peminjaman: ${alat.namaAlat}')),
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => FormPeminjamanScreen(alat: alat),
+                                ),
                               );
                             },
                           ),
@@ -255,9 +199,20 @@ class _DaftarAlatPeminjamScreenState extends State<DaftarAlatPeminjamScreen> {
         ],
       ),
       bottomNavigationBar: PeminjamBottomNavbar(
-        currentIndex: 0, 
+        currentIndex: 1,
         onTap: (index) {
-          // handle navigasi bottom bar peminjam
+          if (index == 1) return;
+          switch (index) {
+            case 0:
+              Navigator.pushReplacementNamed(context, '/peminjam/dashboard');
+              break;
+            case 2:
+              Navigator.pushReplacementNamed(context, '/peminjam/peminjaman');
+              break;
+            case 3:
+              Navigator.pushReplacementNamed(context, '/peminjam/profil');
+              break;
+          }
         },
       ),
     );

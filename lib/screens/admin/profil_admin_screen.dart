@@ -22,30 +22,49 @@ class _ProfilAdminScreenState extends State<ProfilAdminScreen> {
   }
 
   Future<void> _loadProfile() async {
-    try {
-      final currentUser = Supabase.instance.client.auth.currentUser;
-      if (currentUser == null) {
-        setState(() => _isLoading = false);
-        return;
-      }
+  try {
+    final client = Supabase.instance.client;
+    final currentUser = client.auth.currentUser;
 
-      final res = await Supabase.instance.client
-          .from('users')
-          .select()
-          .eq('id', currentUser.id)
-          .single();
-
-      setState(() {
-        _user = res;
-        _isLoading = false;
-      });
-    } catch (e) {
+    if (currentUser == null) {
       setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal memuat profil: $e')),
-      );
+      return;
     }
+
+    final metadata = currentUser.userMetadata ?? {};
+    String nama = metadata['nama'] ?? '';
+    String role = metadata['role'] ?? '';
+
+    // fallback ke tabel users jika metadata kosong
+    if (nama.isEmpty || role.isEmpty) {
+      final res = await client
+          .from('users')
+          .select('nama, role')
+          .eq('id', currentUser.id)
+          .maybeSingle();
+
+      if (res != null) {
+        nama = res['nama'] ?? nama;
+        role = res['role'] ?? role;
+      }
+    }
+
+    setState(() {
+      _user = {
+        'nama': nama.isEmpty ? '-' : nama,
+        'email': currentUser.email ?? '-',
+        'role': role.isEmpty ? '-' : role,
+      };
+      _isLoading = false;
+    });
+
+  } catch (e) {
+    setState(() => _isLoading = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Gagal memuat profil: $e')),
+    );
   }
+}
 
 Future<void> _showLogoutDialog() async {
     final bool? confirm = await showDialog<bool>(

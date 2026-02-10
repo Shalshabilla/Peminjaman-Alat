@@ -38,7 +38,7 @@ class _DashboardPeminjamScreenState extends State<DashboardPeminjamScreen> {
   }
 
   void _handleNavigation(int index) {
-    final routes = ['/peminjam/dashboard', '/peminjam/pengajuan', '/peminjam/riwayat', '/peminjam/profil'];
+    final routes = ['/peminjam/dashboard', '/peminjam/alat', '/peminjam/peminjaman', '/peminjam/profil'];
     if (ModalRoute.of(context)?.settings.name != routes[index]) {
       Navigator.pushReplacementNamed(context, routes[index]);
     }
