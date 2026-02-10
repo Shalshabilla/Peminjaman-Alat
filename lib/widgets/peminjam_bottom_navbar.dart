@@ -36,17 +36,21 @@ class PeminjamBottomNavbar extends StatelessWidget {
         elevation: 0,
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.home), 
-            label: 'Beranda'),
+            icon: Icon(Icons.home),
+            label: 'Beranda',
+          ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.assignment), 
-            label: 'Alat'),
+            icon: Icon(Icons.assignment),
+            label: 'Alat',
+          ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.history), 
-            label: 'Peminjaman'),
+            icon: Icon(Icons.history),
+            label: 'Peminjaman',
+          ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person), 
-            label: 'Profil'),
+            icon: Icon(Icons.person),
+            label: 'Profil',
+          ),
         ],
       ),
     );

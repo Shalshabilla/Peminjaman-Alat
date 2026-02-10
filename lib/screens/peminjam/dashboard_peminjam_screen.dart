@@ -1,4 +1,3 @@
-// Ganti nama class, service, dan bottom navbar
 import 'package:flutter/material.dart';
 import '../../services/peminjam_dashboard_services.dart';
 import '../../widgets/peminjam_bottom_navbar.dart';
@@ -37,8 +36,14 @@ class _DashboardPeminjamScreenState extends State<DashboardPeminjamScreen> {
     });
   }
 
-  void _handleNavigation(int index) {
-    final routes = ['/peminjam/dashboard', '/peminjam/alat', '/peminjam/peminjaman', '/peminjam/profil'];
+  void _onNavTap(int index) {
+    final routes = [
+      '/peminjam/dashboard',
+      '/peminjam/alat',
+      '/peminjam/peminjaman',
+      '/peminjam/profil',
+    ];
+
     if (ModalRoute.of(context)?.settings.name != routes[index]) {
       Navigator.pushReplacementNamed(context, routes[index]);
     }
@@ -82,7 +87,9 @@ class _DashboardPeminjamScreenState extends State<DashboardPeminjamScreen> {
                         width: double.infinity,
                         height: 56,
                         child: ElevatedButton(
-                          onPressed: () {},
+                          onPressed: () {
+                            Navigator.pushNamed(context, '/peminjam/alat');
+                          },
                           style: ElevatedButton.styleFrom(backgroundColor: navy, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                           child: const Text('Ajukan Peminjaman', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                         ),
@@ -94,7 +101,10 @@ class _DashboardPeminjamScreenState extends State<DashboardPeminjamScreen> {
                 ),
               ),
             ),
-      bottomNavigationBar: PeminjamBottomNavbar(currentIndex: 0, onTap: _handleNavigation),
+      bottomNavigationBar: PeminjamBottomNavbar(
+        currentIndex: 0,
+        onTap: _onNavTap,
+      ),
     );
   }
 

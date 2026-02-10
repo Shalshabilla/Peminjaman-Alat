@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pinjam_alat_lab/widgets/admin_bottom_navbar.dart';
 import 'dashboard_admin_screen.dart';
 import 'data_master_screen.dart';
 import 'transaksi_screen.dart';
@@ -18,28 +19,27 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
   final List<Widget> _pages = [
     const DashboardAdminScreen(),
     const DataMasterScreen(),
-    const TransaksiAdminScreen(),
+    const TransaksiAdminScreen(),     // pastikan nama class ini sesuai
     const LogAktifitasScreen(),
     const ProfilAdminScreen(),
   ];
 
+  void _onBottomNavTap(int index) {
+    setState(() {
+      _currentIndex = index;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _pages[_currentIndex],
-      bottomNavigationBar: BottomNavigationBar(
+      body: IndexedStack(
+        index: _currentIndex,
+        children: _pages,
+      ),
+      bottomNavigationBar: AdminBottomNavbar(
         currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: Colors.blue[800],
-        unselectedItemColor: Colors.grey,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.category), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.swap_horiz), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.history), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: ''),
-        ],
+        onTap: _onBottomNavTap,
       ),
     );
   }

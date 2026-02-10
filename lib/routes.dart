@@ -20,6 +20,7 @@ import 'screens/petugas/cetak_laporan.dart';
 import 'screens/petugas/profil_petugas_screen.dart';
 
 // Peminjam
+import 'screens/peminjam/peminjam_main_screen.dart';
 import 'screens/peminjam/dashboard_peminjam_screen.dart';
 import 'screens/peminjam/daftar_alat_peminjam_screen.dart';
 import 'screens/peminjam/peminjaman_pengembalian_screen.dart';
@@ -27,14 +28,11 @@ import 'screens/peminjam/form_peminjaman_screen.dart';
 import 'screens/peminjam/profil_peminjam_screen.dart';
 
 final Map<String, WidgetBuilder> routes = {
-  // ──────────────────────────────────────────────
-  // ENTRY POINT APLIKASI
-  // ──────────────────────────────────────────────
-  '/': (context) => const SplashScreen(),           // splash → biasanya cek auth atau langsung ke login
+  '/': (context) => const SplashScreen(),           
   '/login': (context) => const LoginScreen(),
 
   // ──────────────────────────────────────────────
-  // ADMIN ROUTES (sudah lengkap dari sebelumnya)
+  // ADMIN ROUTES 
   // ──────────────────────────────────────────────
   '/admin': (context) => const DashboardAdminScreen(),
   '/admin/dashboard': (context) => const DashboardAdminScreen(),
@@ -57,6 +55,7 @@ final Map<String, WidgetBuilder> routes = {
   // ──────────────────────────────────────────────
   // PEMINJAM / SISWA ROUTES
   // ──────────────────────────────────────────────
+  '/peminjam': (context) => const PeminjamMainScreen(),
   '/peminjam/dashboard': (context) => const DashboardPeminjamScreen(),
   '/peminjam/alat': (context) => const DaftarAlatPeminjamScreen(),
   '/peminjam/form-peminjaman': (context) => const FormPeminjamanScreen(),

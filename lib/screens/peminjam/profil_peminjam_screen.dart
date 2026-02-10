@@ -1,5 +1,3 @@
-// lib/screens/peminjam/profil_peminjam_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../widgets/peminjam_bottom_navbar.dart';
@@ -84,6 +82,19 @@ class _ProfilPeminjamScreenState extends State<ProfilPeminjamScreen> {
     }
   }
 
+  void _onNavTap(int index) {
+    final routes = [
+      '/peminjam/dashboard',
+      '/peminjam/alat',
+      '/peminjam/peminjaman',
+      '/peminjam/profil',
+    ];
+
+    if (ModalRoute.of(context)?.settings.name != routes[index]) {
+      Navigator.pushReplacementNamed(context, routes[index]);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     const navy = Color(0xFF0D47A1);
@@ -93,7 +104,7 @@ class _ProfilPeminjamScreenState extends State<ProfilPeminjamScreen> {
 
       appBar: AppBar(
         toolbarHeight: 76,
-        automaticallyImplyLeading: false, // ❗ penting biar ga bentrok navbar
+        automaticallyImplyLeading: false,
         title: const Text(
           'Profil',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
@@ -158,7 +169,7 @@ class _ProfilPeminjamScreenState extends State<ProfilPeminjamScreen> {
 
       bottomNavigationBar: PeminjamBottomNavbar(
         currentIndex: 3,
-        onTap: (index) => _handlePeminjamNav(context, index),
+        onTap: _onNavTap,
       ),
     );
   }
@@ -181,21 +192,5 @@ class _ProfilPeminjamScreenState extends State<ProfilPeminjamScreen> {
         ),
       ],
     );
-  }
-
-  void _handlePeminjamNav(BuildContext context, int index) {
-    switch (index) {
-      case 0:
-        Navigator.pushReplacementNamed(context, '/peminjam/dashboard');
-        break;
-      case 1:
-        Navigator.pushReplacementNamed(context, '/peminjam/alat');
-        break;
-      case 2:
-        Navigator.pushReplacementNamed(context, '/peminjam/peminjaman');
-        break;
-      case 3:
-        break; // sudah di profil
-    }
   }
 }

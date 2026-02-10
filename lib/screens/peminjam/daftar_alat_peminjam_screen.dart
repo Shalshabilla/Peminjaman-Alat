@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/alat_model.dart';
 import '../../widgets/alat_item_peminjam.dart';
 import '../../widgets/peminjam_bottom_navbar.dart';
+import '../../utils/colors.dart';
 import 'form_peminjaman_screen.dart';
 
 class DaftarAlatPeminjamScreen extends StatefulWidget {
@@ -39,7 +40,7 @@ class _DaftarAlatPeminjamScreenState extends State<DaftarAlatPeminjamScreen> {
     setState(() {
       _kategoriMap = {for (var k in data) k['id_kategori'] as int: k['nama_kategori'] as String};
     });
-    _refreshData(); // load data setelah kategori siap
+    _refreshData();
   }
 
   List<Alat> get _filteredAlat {
@@ -66,6 +67,19 @@ class _DaftarAlatPeminjamScreenState extends State<DaftarAlatPeminjamScreen> {
     });
   }
 
+  void _onNavTap(int index) {
+    final routes = [
+      '/peminjam/dashboard',
+      '/peminjam/alat',
+      '/peminjam/peminjaman',
+      '/peminjam/profil',
+    ];
+
+    if (ModalRoute.of(context)?.settings.name != routes[index]) {
+      Navigator.pushReplacementNamed(context, routes[index]);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -82,7 +96,6 @@ class _DaftarAlatPeminjamScreenState extends State<DaftarAlatPeminjamScreen> {
         children: [
           const SizedBox(height: 10),
 
-          // SEARCH
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 16),
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -102,7 +115,6 @@ class _DaftarAlatPeminjamScreenState extends State<DaftarAlatPeminjamScreen> {
 
           const SizedBox(height: 16),
 
-          // FILTER CHIP
           SizedBox(
             height: 42,
             child: ListView.builder(
@@ -136,7 +148,6 @@ class _DaftarAlatPeminjamScreenState extends State<DaftarAlatPeminjamScreen> {
 
           const SizedBox(height: 8),
 
-          // LIST ALAT
           Expanded(
             child: RefreshIndicator(
               onRefresh: _refreshData,
@@ -200,20 +211,7 @@ class _DaftarAlatPeminjamScreenState extends State<DaftarAlatPeminjamScreen> {
       ),
       bottomNavigationBar: PeminjamBottomNavbar(
         currentIndex: 1,
-        onTap: (index) {
-          if (index == 1) return;
-          switch (index) {
-            case 0:
-              Navigator.pushReplacementNamed(context, '/peminjam/dashboard');
-              break;
-            case 2:
-              Navigator.pushReplacementNamed(context, '/peminjam/peminjaman');
-              break;
-            case 3:
-              Navigator.pushReplacementNamed(context, '/peminjam/profil');
-              break;
-          }
-        },
+        onTap: _onNavTap,
       ),
     );
   }
