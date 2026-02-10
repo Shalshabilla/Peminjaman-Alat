@@ -33,15 +33,19 @@ class _ProfilPetugasScreenState extends State<ProfilPetugasScreen> {
           .eq('id', currentUser.id)
           .single();
 
-      setState(() {
-        _user = res;
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _user = res;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal memuat profil: $e')),
-      );
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal memuat profil: $e')),
+        );
+      }
     }
   }
 
@@ -57,24 +61,15 @@ class _ProfilPetugasScreenState extends State<ProfilPetugasScreen> {
               SizedBox(width: 12),
               Text(
                 "Keluar",
-                style: TextStyle(
-                  color: Colors.red,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
               ),
             ],
           ),
-          content: const Text(
-            "Anda yakin ingin keluar dari akun?",
-            style: TextStyle(fontSize: 16),
-          ),
+          content: const Text("Anda yakin ingin keluar dari akun?"),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text(
-                "Batal",
-                style: TextStyle(color: Colors.grey),
-              ),
+              child: const Text("Batal", style: TextStyle(color: Colors.grey)),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(true),
@@ -96,40 +91,47 @@ class _ProfilPetugasScreenState extends State<ProfilPetugasScreen> {
   Future<void> _performLogout() async {
     try {
       await Supabase.instance.client.auth.signOut();
-      if (!mounted) return;
-      Navigator.pushNamedAndRemoveUntil(
-        context,
-        '/login',
-        (route) => false,
-      );
+      if (mounted) {
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/login',
+          (route) => false,
+        );
+      }
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal logout: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal logout: $e')),
+        );
+      }
+    }
+  }
+
+  void _onNavTap(int index) {
+    final routes = [
+      '/petugas/dashboard',      // 0
+      '/petugas/pengajuan',      // 1
+      '/petugas/pengembalian',   // 2
+      '/petugas/laporan',        // 3
+      '/petugas/profil',         // 4 (halaman ini)
+    ];
+
+    if (index != 4 && index >= 0 && index < routes.length) {
+      Navigator.pushReplacementNamed(context, routes[index]);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     const navy = Color(0xFF0D47A1);
-    const navyShadow = Color(0xFF0D47A1);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
       appBar: AppBar(
         toolbarHeight: 76,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
         title: const Text(
           'Profil',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-          ),
+          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w600),
         ),
         backgroundColor: navy,
         elevation: 0,
@@ -192,8 +194,8 @@ class _ProfilPetugasScreenState extends State<ProfilPetugasScreen> {
                   ),
                 ),
       bottomNavigationBar: PetugasBottomNavbar(
-        currentIndex: 4, // asumsi index 4 = Profil
-        onTap: (index) => _handlePetugasNav(context, index),
+        currentIndex: 4, // Profil
+        onTap: _onNavTap,
       ),
     );
   }
@@ -225,24 +227,5 @@ class _ProfilPetugasScreenState extends State<ProfilPetugasScreen> {
         ),
       ],
     );
-  }
-
-  void _handlePetugasNav(BuildContext context, int index) {
-    switch (index) {
-      case 0:
-        Navigator.pushReplacementNamed(context, '/petugas/dashboard');
-        break;
-      case 1:
-        Navigator.pushReplacementNamed(context, '/petugas/peminjaman');
-        break;
-      case 2:
-        Navigator.pushReplacementNamed(context, '/petugas/pengembalian');
-        break;
-      case 3:
-        Navigator.pushReplacementNamed(context, '/petugas/laporan');
-        break;
-      case 4: // sudah di profil
-        break;
-    }
   }
 }

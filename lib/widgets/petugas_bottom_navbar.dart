@@ -40,10 +40,10 @@ class PetugasBottomNavbar extends StatelessWidget {
             label: 'Beranda'),
           BottomNavigationBarItem(
             icon: Icon(Icons.assignment_turned_in), 
-            label: 'Pengajuan'),
+            label: 'Peminjaman'),
           BottomNavigationBarItem(
             icon: Icon(Icons.download_for_offline), 
-            label: 'Cetak'),
+            label: 'Pengembalian'),
           BottomNavigationBarItem(
             icon: Icon(Icons.description), 
             label: 'Laporan'),

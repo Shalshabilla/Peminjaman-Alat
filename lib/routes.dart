@@ -16,7 +16,7 @@ import 'screens/admin/read_pengembalian_screen.dart';
 import 'screens/petugas/dashboard_petugas_screen.dart';
 import 'screens/petugas/peminjaman_petugas_screen.dart';
 import 'screens/petugas/pengembalian_petugas_screen.dart';
-import 'screens/petugas/cetak_laporan.dart';
+import 'screens/petugas/laporan_petugas_screen.dart';
 import 'screens/petugas/profil_petugas_screen.dart';
 
 // Peminjam
@@ -47,7 +47,7 @@ final Map<String, WidgetBuilder> routes = {
   // PETUGAS ROUTES
   // ──────────────────────────────────────────────
   '/petugas/dashboard': (context) => const DashboardPetugasScreen(),
-  //'/petugas/peminjaman': (context) => const PeminjamanPetugasScreen(),
+  '/petugas/peminjaman': (context) => const PeminjamanPetugasScreen(),
   //'/petugas/pengembalian': (context) => const PengembalianPetugasScreen(),
   //'/petugas/cetak-laporan': (context) => const CetakLaporanScreen(),
   '/petugas/profil': (context) => const ProfilPetugasScreen(),

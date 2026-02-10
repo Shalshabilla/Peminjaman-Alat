@@ -30,33 +30,35 @@ class _DashboardPetugasScreenState extends State<DashboardPetugasScreen> {
     setState(() => _isLoading = true);
     try {
       final data = await _service.getStatusCounts();
-      if (!mounted) return;
-      setState(() {
-        pengajuanBaru = data['pengajuanBaru'] ?? 0;
-        peminjamanAktif = data['peminjamanAktif'] ?? 0;
-        pengembalianHariIni = data['pengembalianHariIni'] ?? 0;
-        terlambat = data['terlambat'] ?? 0;
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          pengajuanBaru = data['pengajuanBaru'] ?? 0;
+          peminjamanAktif = data['peminjamanAktif'] ?? 0;
+          pengembalianHariIni = data['pengembalianHariIni'] ?? 0;
+          terlambat = data['terlambat'] ?? 0;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _isLoading = false;
-        _errorMessage = 'Gagal memuat data: $e';
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'Gagal memuat data: $e';
+        });
+      }
     }
   }
 
-  void _handleNavigation(int index) {
-    // Sesuaikan route sesuai project kamu
+  void _onNavTap(int index) {
     final routes = [
-      '/petugas/dashboard',
-      '/petugas/pengajuan',
-      '/petugas/cetak',
-      '/petugas/laporan',
-      '/petugas/profil',
+      '/petugas/dashboard',      // 0
+      '/petugas/pengajuan',      // 1
+      '/petugas/pengembalian',   // 2
+      '/petugas/laporan',        // 3
+      '/petugas/profil',         // 4
     ];
-    if (ModalRoute.of(context)?.settings.name != routes[index]) {
+
+    if (index != 0) {  // hindari reload halaman yang sama
       Navigator.pushReplacementNamed(context, routes[index]);
     }
   }
@@ -101,7 +103,6 @@ class _DashboardPetugasScreenState extends State<DashboardPetugasScreen> {
                             style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: navy),
                           ),
                           const SizedBox(height: 20),
-
                           _buildStatusCard(Icons.assignment, 'Pengajuan peminjaman baru', pengajuanBaru, Colors.amber),
                           const SizedBox(height: 12),
                           _buildStatusCard(Icons.inventory_2, 'Peminjaman Aktif', peminjamanAktif, Colors.green),
@@ -109,16 +110,12 @@ class _DashboardPetugasScreenState extends State<DashboardPetugasScreen> {
                           _buildStatusCard(Icons.assignment_return, 'Pengembalian hari ini', pengembalianHariIni, Colors.blue),
                           const SizedBox(height: 12),
                           _buildStatusCard(Icons.warning_amber_rounded, 'Terlambat', terlambat, Colors.red),
-
                           const SizedBox(height: 32),
-
                           SizedBox(
                             width: double.infinity,
                             height: 56,
                             child: ElevatedButton(
-                              onPressed: () {
-                                // Navigasi ke halaman cetak laporan
-                              },
+                              onPressed: () {}, // arahkan ke laporan jika perlu
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: navy,
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -126,7 +123,6 @@ class _DashboardPetugasScreenState extends State<DashboardPetugasScreen> {
                               child: const Text('Cetak Laporan', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                             ),
                           ),
-
                           const SizedBox(height: 100),
                         ],
                       ),
@@ -134,13 +130,14 @@ class _DashboardPetugasScreenState extends State<DashboardPetugasScreen> {
                   ),
                 ),
       bottomNavigationBar: PetugasBottomNavbar(
-        currentIndex: 0,
-        onTap: _handleNavigation,
+        currentIndex: 0,  // Dashboard = index 0
+        onTap: _onNavTap,
       ),
     );
   }
 
   Widget _buildStatusCard(IconData icon, String title, int count, Color color) {
+    // kode card tetap sama seperti sebelumnya...
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(

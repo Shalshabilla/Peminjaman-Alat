@@ -29,6 +29,8 @@ class Peminjaman {
           .toList(),
     );
   }
+
+  get tglKembaliRencana => null;
 }
 
 class DetailPeminjaman {

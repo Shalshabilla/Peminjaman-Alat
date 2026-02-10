@@ -23,7 +23,7 @@ class _PeminjamanPeminjamScreenState extends State<PeminjamanPeminjamScreen> {
     'Semua',
     'Menunggu',
     'Disetujui',
-    'Dipinjam',
+    'Ditolak',
     'Dikembalikan',
   ];
 
@@ -96,8 +96,8 @@ class _PeminjamanPeminjamScreenState extends State<PeminjamanPeminjamScreen> {
         return Colors.orange;
       case 'disetujui':
         return Colors.green;
-      case 'dipinjam':
-        return Colors.blue;
+      case 'ditolak':
+        return Colors.red;
       case 'dikembalikan':
         return Colors.grey;
       default:

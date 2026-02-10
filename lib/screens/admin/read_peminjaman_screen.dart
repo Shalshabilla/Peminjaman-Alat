@@ -1,43 +1,262 @@
 // lib/screens/admin/read_peminjaman_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../models/peminjaman_model.dart'; // sesuaikan path model Anda
 import '../../widgets/admin_bottom_navbar.dart'; // sesuaikan path
+//import 'detail_peminjaman_admin_screen.dart'; // buat jika perlu halaman detail
 
-class PeminjamanListScreen extends StatelessWidget {
+class PeminjamanListScreen extends StatefulWidget {
   const PeminjamanListScreen({super.key});
 
-  // Data dummy sementara (nanti ganti dengan query Supabase)
-  final List<Map<String, dynamic>> dummyPeminjaman = const [
-    {
-      'id': 'PJ001',
-      'peminjam': 'Shalshabilla',
-      'alat': 'Laptop Asus',
-      'tanggal_pinjam': '2025-02-05',
-      'status': 'Dipinjam',
-    },
-    {
-      'id': 'PJ002',
-      'peminjam': 'User C',
-      'alat': 'Kabel LAN 10m',
-      'tanggal_pinjam': '2025-02-06',
-      'status': 'Disetujui',
-    },
-    {
-      'id': 'PJ003',
-      'peminjam': 'Petugas B',
-      'alat': 'Proyektor',
-      'tanggal_pinjam': '2025-02-07',
-      'status': 'Menunggu Persetujuan',
-    },
+  @override
+  State<PeminjamanListScreen> createState() => _PeminjamanListScreenState();
+}
+
+class _PeminjamanListScreenState extends State<PeminjamanListScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  String _selectedStatus = 'Semua';
+
+  List<Peminjaman> _allPeminjaman = [];
+
+  final List<String> _statuses = [
+    'Semua',
+    'Menunggu',
+    'Disetujui',
+    'Ditolak',
+    'Dipinjam',
   ];
+
+  final Color primary = const Color(
+    0xFF0D47A1,
+  ); // navy yang Anda pakai sebelumnya
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPeminjaman();
+
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text.trim().toLowerCase();
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadPeminjaman() async {
+    try {
+      final res = await Supabase.instance.client
+          .from('peminjaman')
+          .select('''
+            id_peminjaman,
+            status,
+            tgl_pinjam,
+            tgl_kembali_rencana,
+            users!peminjaman_id_user_fkey ( nama ),
+            detail_peminjaman (
+              jumlah,
+              alat ( nama_alat )
+            )
+          ''')
+          .order('tgl_pinjam', ascending: false);
+
+      if (mounted) {
+        setState(() {
+          _allPeminjaman = res.map((e) => Peminjaman.fromJson(e)).toList();
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading peminjaman (admin): $e');
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Gagal memuat data: $e')));
+      }
+    }
+  }
+
+  List<Peminjaman> get _filtered {
+    return _allPeminjaman.where((p) {
+      final matchSearch =
+          (p.namaPeminjam?.toLowerCase().contains(_searchQuery) ?? false) ||
+          p.detail.any((d) => d.namaAlat.toLowerCase().contains(_searchQuery));
+
+      final matchStatus =
+          _selectedStatus == 'Semua' ||
+          p.status.toLowerCase() == _selectedStatus.toLowerCase();
+
+      return matchSearch && matchStatus;
+    }).toList();
+  }
+
+  Color _statusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'menunggu persetujuan':
+      case 'menunggu':
+        return Colors.orange;
+      case 'disetujui':
+        return Colors.green;
+      case 'ditolak':
+        return Colors.red;
+      case 'dipinjam':
+        return Colors.blue;
+      case 'dikembalikan':
+        return Colors.grey;
+      case 'terlambat':
+        return Colors.redAccent;
+      default:
+        return primary;
+    }
+  }
+
+  Widget _buildCard(Peminjaman p) {
+    final alatNama = p.detail.map((e) => e.namaAlat).join(', ');
+    final jumlahTotal = p.detail.fold<int>(0, (sum, e) => sum + e.jumlah);
+
+    final tglPinjamFormatted = DateFormat('dd MMM yyyy').format(p.tglPinjam);
+    final tglKembaliStr =
+        p.tglKembali != null
+            ? DateFormat('dd MMM yyyy').format(p.tglKembali!)
+            : (p.tglKembaliRencana != null
+                ? DateFormat('dd MMM yyyy').format(p.tglKembaliRencana!)
+                : '-');
+
+    return GestureDetector(
+      onTap: () {
+        // Navigator.push(
+        //   context,
+        //   MaterialPageRoute(
+        //     builder: (_) => DetailPeminjamanAdminScreen(peminjaman: p),
+        //   ),
+        // );
+        // sementara hanya print — ganti dengan halaman detail jika sudah ada
+        debugPrint('Tapped peminjaman: ${p.idPeminjaman}');
+      },
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: primary.withOpacity(0.4), width: 1.2),
+          boxShadow: [
+            BoxShadow(
+              color: primary.withOpacity(0.18),
+              blurRadius: 12,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Stack(
+          children: [
+            // Status chip di kanan atas
+            Positioned(
+              top: 0,
+              right: 0,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 5,
+                ),
+                decoration: BoxDecoration(
+                  color: _statusColor(p.status).withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  p.status,
+                  style: TextStyle(
+                    color: _statusColor(p.status),
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12.5,
+                  ),
+                ),
+              ),
+            ),
+
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Nama peminjam (bold + warna primary)
+                Text(
+                  p.namaPeminjam ?? 'Peminjam tidak diketahui',
+                  style: TextStyle(
+                    fontSize: 17.5,
+                    fontWeight: FontWeight.bold,
+                    color: primary,
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                // Alat
+                Row(
+                  children: [
+                    const Icon(Icons.build, size: 18, color: Colors.grey),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        alatNama.isEmpty ? '-' : alatNama,
+                        style: const TextStyle(fontSize: 14.5),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+
+                // Jumlah total
+                Row(
+                  children: [
+                    const Icon(Icons.inventory_2, size: 18, color: Colors.grey),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Jumlah: $jumlahTotal',
+                      style: const TextStyle(fontSize: 14.5),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+
+                // Tanggal
+                Row(
+                  children: [
+                    const Icon(Icons.date_range, size: 18, color: Colors.grey),
+                    const SizedBox(width: 8),
+                    Text(
+                      '$tglPinjamFormatted - $tglKembaliStr',
+                      style: const TextStyle(fontSize: 14, color: Colors.grey),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+
+            // Icon panah kanan bawah
+            Positioned(
+              bottom: 4,
+              right: 4,
+              child: Icon(
+                Icons.chevron_right,
+                size: 32,
+                color: primary.withOpacity(0.7),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    const navy = Color(0xFF0D47A1);
-    const navyShadow = Color(0xFF0D47A1);
-
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F6FA),
+      backgroundColor: const Color(0xFFF8F9FC),
       appBar: AppBar(
         toolbarHeight: 76,
         leading: IconButton(
@@ -52,73 +271,91 @@ class PeminjamanListScreen extends StatelessWidget {
             fontWeight: FontWeight.w600,
           ),
         ),
-        backgroundColor: navy,
+        backgroundColor: primary,
         elevation: 0,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: ListView.builder(
-          itemCount: dummyPeminjaman.length,
-          itemBuilder: (context, index) {
-            final item = dummyPeminjaman[index];
-            return Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: navy, width: 1.4),
-                boxShadow: [
-                  BoxShadow(
-                    color: navy.withOpacity(0.28),
-                    blurRadius: 16,
-                    spreadRadius: 3,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
+      body: Column(
+        children: [
+          const SizedBox(height: 12),
+
+          // Search bar
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(30),
+              border: Border.all(color: primary, width: 2),
+            ),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                icon: Icon(Icons.search, color: primary),
+                hintText: 'Cari peminjam / alat...',
+                border: InputBorder.none,
+                hintStyle: TextStyle(color: primary.withOpacity(0.6)),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        item['id'],
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: navy,
-                        ),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Filter status chips
+          SizedBox(
+            height: 44,
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              scrollDirection: Axis.horizontal,
+              itemCount: _statuses.length,
+              itemBuilder: (context, index) {
+                final status = _statuses[index];
+                final isSelected = status == _selectedStatus;
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: FilterChip(
+                    label: Text(
+                      status,
+                      style: TextStyle(
+                        color: isSelected ? Colors.white : primary,
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w600,
                       ),
-                      _buildStatusChip(item['status'], navy),
-                    ],
+                    ),
+                    selected: isSelected,
+                    onSelected: (_) => setState(() => _selectedStatus = status),
+                    backgroundColor: Colors.white,
+                    selectedColor: primary,
+                    shape: StadiumBorder(side: BorderSide(color: primary)),
+                    showCheckmark: false,
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Peminjam: ${item['peminjam']}',
-                    style: const TextStyle(fontSize: 15, color: Colors.black87),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Alat: ${item['alat']}',
-                    style: const TextStyle(fontSize: 15, color: Colors.black87),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Tanggal Pinjam: ${item['tanggal_pinjam']}',
-                    style: const TextStyle(fontSize: 14, color: Colors.grey),
-                  ),
-                ],
-              ),
-            );
-          },
-        ),
+                );
+              },
+            ),
+          ),
+
+          const SizedBox(height: 8),
+
+          Expanded(
+            child:
+                _filtered.isEmpty
+                    ? const Center(
+                      child: Text(
+                        'Tidak ada data peminjaman',
+                        style: TextStyle(fontSize: 16, color: Colors.grey),
+                      ),
+                    )
+                    : RefreshIndicator(
+                      onRefresh: _loadPeminjaman,
+                      child: ListView.builder(
+                        itemCount: _filtered.length,
+                        itemBuilder: (context, i) => _buildCard(_filtered[i]),
+                      ),
+                    ),
+          ),
+        ],
       ),
       bottomNavigationBar: AdminBottomNavbar(
-        currentIndex: 2, // Transaksi (karena masuk dari menu transaksi)
+        currentIndex: 2,
         onTap: (index) {
-          // Gunakan navigasi yang sama seperti di halaman lain
           final currentRoute = ModalRoute.of(context)?.settings.name;
           String? targetRoute;
           switch (index) {
@@ -142,37 +379,6 @@ class PeminjamanListScreen extends StatelessWidget {
             Navigator.pushReplacementNamed(context, targetRoute);
           }
         },
-      ),
-    );
-  }
-
-  Widget _buildStatusChip(String status, Color navy) {
-    Color bgColor;
-    Color textColor = Colors.white;
-
-    switch (status.toLowerCase()) {
-      case 'dipinjam':
-        bgColor = Colors.orange;
-        break;
-      case 'disetujui':
-        bgColor = Colors.green;
-        break;
-      case 'menunggu persetujuan':
-        bgColor = Colors.blue;
-        break;
-      default:
-        bgColor = Colors.grey;
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        status,
-        style: TextStyle(fontSize: 12, color: textColor, fontWeight: FontWeight.w600),
       ),
     );
   }
