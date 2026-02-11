@@ -62,5 +62,6 @@ final Map<String, WidgetBuilder> routes = {
   '/peminjam/peminjaman': (context) => const PeminjamanPeminjamScreen(),
   '/peminjam/profil': (context) => const ProfilPeminjamScreen(),
 
+//lengkapi-profil': (context) => const LengkapiProfilScreen(),
 
 };

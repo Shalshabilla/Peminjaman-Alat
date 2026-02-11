@@ -56,7 +56,7 @@ class _DetailPeminjamanPetugasScreenState extends State<DetailPeminjamanPetugasS
     try {
       await Supabase.instance.client
           .from('peminjaman')
-          .update({'status': 'Dipinjam'})
+          .update({'status': 'disetujui'})
           .eq('id_peminjaman', widget.peminjaman.idPeminjaman);
 
       if (!mounted) return;
@@ -119,6 +119,29 @@ class _DetailPeminjamanPetugasScreenState extends State<DetailPeminjamanPetugasS
       }
     }
   }
+Future<void> _handleDikembalikan() async {
+  try {
+    await Supabase.instance.client
+        .from('peminjaman')
+        .update({
+          'status': 'dikembalikan',
+          'tgl_kembali': DateTime.now().toIso8601String(),
+        })
+        .eq('id_peminjaman', widget.peminjaman.idPeminjaman);
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Alat berhasil dikembalikan')),
+    );
+
+    Navigator.pop(context);
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Gagal update: $e')),
+    );
+  }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -292,6 +315,25 @@ class _DetailPeminjamanPetugasScreenState extends State<DetailPeminjamanPetugasS
               ],
             ),
           ],
+// AKSI PETUGAS ── jika status dipinjam
+if (p.status.toLowerCase() == 'dipinjam') ...[
+  const SizedBox(height: 24),
+  SizedBox(
+    width: double.infinity,
+    child: ElevatedButton(
+      onPressed: _handleDikembalikan,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.blue,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+      child: const Text('DIKEMBALIKAN'),
+    ),
+  ),
+],
 
           const SizedBox(height: 40),
         ],

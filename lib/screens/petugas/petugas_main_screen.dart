@@ -30,7 +30,7 @@ class _PetugasMainScreenState extends State<PetugasMainScreen> {
   // Daftar halaman sesuai urutan di bottom navbar
   final List<Widget> _screens = [
     const DashboardPetugasScreen(),       // 0 - Beranda
-    const PeminjamanPetugasScreen(),       // 1 - Pengajuan (peminjaman masuk)
+    const PeminjamanPetugasScreen(),       // 1 -   Peminjaman
     //const PengembalianPetugasScreen(),    // 2 - Pengembalian
     //const LaporanPetugasScreen(),         // 3 - Laporan
     const ProfilPetugasScreen(),          // 4 - Profil

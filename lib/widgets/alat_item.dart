@@ -48,11 +48,10 @@ class AlatItem extends StatelessWidget {
           ),
         ),
 
-        // GARIS PEMISAH – penuh kiri-kanan, agak tebal
         const Divider(
           height: 1.5,
           thickness: 1.5,
-          color: Color(0xFFD0D0D0), // abu-abu agak tebal & jelas
+          color: Color(0xFFD0D0D0),
           indent: 0,
           endIndent: 0,
         ),

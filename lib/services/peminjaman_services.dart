@@ -6,7 +6,7 @@ class PeminjamanService {
   Future<int> getPeminjamanAktif() async {
     final res = await _client
         .from('peminjaman')
-        .select('id')
+        .select('id_peminjaman')
         .eq('status', 'dipinjam');
     return (res as List).length;
   }
@@ -16,9 +16,9 @@ class PeminjamanService {
 
     final res = await _client
         .from('peminjaman')
-        .select('id')
+        .select('id_peminjaman')
         .eq('status', 'dikembalikan')
-        .eq('tanggal_kembali', today);
+        .eq('tgl_kembali', today);
 
     return (res as List).length;
   }
@@ -33,3 +33,4 @@ class PeminjamanService {
     return List<Map<String, dynamic>>.from(res as List);
   }
 }
+

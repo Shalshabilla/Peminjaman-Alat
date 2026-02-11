@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/user_model.dart';
 import '../../services/user_services.dart';
 import '../../widgets/admin_bottom_navbar.dart';
@@ -13,6 +14,7 @@ class UserListScreen extends StatefulWidget {
 }
 
 class _UserListScreenState extends State<UserListScreen> {
+  RealtimeChannel? _userRealtimeChannel;
   final UserService _service = UserService();
 
   List<AppUser> _allUsers = [];
@@ -26,10 +28,12 @@ class _UserListScreenState extends State<UserListScreen> {
   final Color primary = const Color(0xFF2F3A8F);
 
   @override
-  void initState() {
-    super.initState();
-    _fetchUsers();
-  }
+void initState() {
+  super.initState();
+  _fetchUsers();
+  _listenUserRealtime();
+}
+
 
   Future<void> _fetchUsers() async {
     _allUsers = await _service.getAllUsers();
@@ -48,6 +52,22 @@ class _UserListScreenState extends State<UserListScreen> {
       }).toList();
     });
   }
+
+  void _listenUserRealtime() {
+  _userRealtimeChannel = Supabase.instance.client
+      .channel('public:users')
+      .onPostgresChanges(
+        event: PostgresChangeEvent.all,
+        schema: 'public',
+        table: 'users',
+        callback: (payload) async {
+          // setiap INSERT / UPDATE / DELETE
+          await _fetchUsers();
+        },
+      )
+      .subscribe();
+}
+
 
   // ================= ROLE STYLE =================
 
@@ -310,83 +330,87 @@ class _UserListScreenState extends State<UserListScreen> {
     );
   }
 
+
+Widget _searchField() {
+  return Padding(
+    padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+    child: TextField(
+      decoration: InputDecoration(
+        hintText: 'Cari pengguna...',
+        prefixIcon: const Icon(Icons.search),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+      ),
+      onChanged: (value) {
+        _search = value;
+        _applyFilter();
+      },
+    ),
+  );
+}
+
   // ================= UI =================
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
+Widget build(BuildContext context) {
+  return Scaffold(
+    backgroundColor: Colors.white,
 
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        foregroundColor: primary,
-        title: const Text('Daftar Pengguna'),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: GestureDetector(
-              onTap: () async {
-                final result = await Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const AddUserScreen()),
-                );
-                if (result == true) _fetchUsers();
+    appBar: AppBar(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      foregroundColor: primary,
+      title: const Text('Daftar Pengguna'),
+      actions: [
+        Padding(
+          padding: const EdgeInsets.only(right: 12),
+          child: GestureDetector(
+            onTap: () async {
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AddUserScreen()),
+              );
+              if (result == true) _fetchUsers();
+            },
+            child: CircleAvatar(
+              backgroundColor: Colors.grey[400],
+              child: const Icon(Icons.add, color: Colors.white),
+            ),
+          ),
+        ),
+      ],
+    ),
+
+
+   body: Column(
+  children: [
+    _searchField(),   
+    _filterChips(),   
+
+    Expanded(
+      child: _filteredUsers.isEmpty
+          ? const Center(
+              child: Text(
+                'Tidak ada data pengguna',
+                style: TextStyle(color: Colors.grey),
+              ),
+            )
+          : ListView.builder(
+              itemCount: _filteredUsers.length,
+              itemBuilder: (context, index) {
+                return _userCard(_filteredUsers[index]);
               },
-              child: CircleAvatar(
-                backgroundColor: Colors.grey[400],
-                child: const Icon(Icons.add, color: Colors.white),
-              ),
             ),
-          ),
-        ],
-      ),
+    ),
+  ],
+   ),
+  );
+}
 
-      body: Column(
-        children: [
-          const SizedBox(height: 10),
-
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16),
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(30),
-              border: Border.all(color: primary, width: 2),
-            ),
-            child: TextField(
-              onChanged: (v) {
-                _search = v;
-                _applyFilter();
-              },
-              decoration: InputDecoration(
-                icon: Icon(Icons.search, color: primary),
-                hintText: 'Cari pengguna...',
-                border: InputBorder.none,
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 10),
-
-          _filterChips(),
-
-          const SizedBox(height: 10),
-
-          Expanded(
-            child: RefreshIndicator(
-              onRefresh: _fetchUsers,
-              child: ListView.builder(
-                itemCount: _filteredUsers.length,
-                itemBuilder: (context, index) =>
-                    _userCard(_filteredUsers[index]),
-              ),
-            ),
-          ),
-        ],
-      ),
-
-      bottomNavigationBar:
-          AdminBottomNavbar(currentIndex: 1, onTap: (_) {}),
-    );
+  @override
+  void dispose() {
+    _userRealtimeChannel?.unsubscribe();
+    super.dispose();
   }
 }

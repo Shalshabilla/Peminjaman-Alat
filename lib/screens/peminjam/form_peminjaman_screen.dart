@@ -24,6 +24,7 @@ class _FormPeminjamanScreenState extends State<FormPeminjamanScreen> {
   DateTime? _tanggalKembali;
 
   String? _namaPeminjam;
+  String? _jumlahError;
   bool _isLoadingProfile = true;
   bool _isSubmitting = false;
 
@@ -127,12 +128,18 @@ class _FormPeminjamanScreenState extends State<FormPeminjamanScreen> {
     if (user == null || _alat == null) return;
 
     final jumlahStr = _jumlahController.text.trim();
-    final jumlah = int.tryParse(jumlahStr);
+final jumlah = int.tryParse(jumlahStr);
 
-    if (jumlah == null || jumlah <= 0) {
-      _showError('Masukkan jumlah yang valid');
-      return;
-    }
+if (_jumlahError != null) {
+  _showError(_jumlahError!);
+  return;
+}
+
+
+if (jumlah == null || jumlah <= 0) {
+  _showError('Masukkan jumlah yang valid');
+  return;
+}
 
     if (_tanggalPinjam == null || _tanggalKembali == null) {
       _showError('Pilih tanggal pinjam dan kembali');
@@ -183,6 +190,37 @@ class _FormPeminjamanScreenState extends State<FormPeminjamanScreen> {
       if (mounted) setState(() => _isSubmitting = false);
     }
   }
+
+void _validateJumlah(String value) {
+  if (_alat == null) return;
+
+  final jumlah = int.tryParse(value);
+  final stok = _alat!.stok ?? 0;
+
+  if (value.isEmpty) {
+    setState(() => _jumlahError = null);
+    return;
+  }
+
+  if (jumlah == null || jumlah <= 0) {
+    setState(() => _jumlahError = 'Masukkan angka yang valid');
+    return;
+  }
+
+  // 🔥 stok kecil (≤ 3)
+  if (stok <= 3 && jumlah > 1) {
+    setState(() => _jumlahError = 'Maksimal jumlah alat 1');
+    return;
+  }
+
+  // stok normal (> 3)
+  if (stok > 3 && jumlah > stok) {
+    setState(() => _jumlahError = 'Jumlah melebihi stok tersedia');
+    return;
+  }
+
+  setState(() => _jumlahError = null);
+}
 
   void _showError(String message) {
     if (!mounted) return;
@@ -276,14 +314,17 @@ class _FormPeminjamanScreenState extends State<FormPeminjamanScreen> {
               const Text('Jumlah', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
               const SizedBox(height: 8),
               TextField(
-                controller: _jumlahController,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  hintText: 'Masukkan jumlah unit',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                ),
-              ),
+  controller: _jumlahController,
+  keyboardType: TextInputType.number,
+  onChanged: _validateJumlah, // 🔥 realtime
+  decoration: InputDecoration(
+    hintText: 'Masukkan jumlah unit',
+    errorText: _jumlahError, // 🔥 muncul sebelum submit
+    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+  ),
+),
+
 
               const SizedBox(height: 24),
 

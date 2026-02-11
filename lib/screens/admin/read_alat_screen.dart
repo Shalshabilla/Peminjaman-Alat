@@ -19,6 +19,7 @@ class _ReadAlatScreenState extends State<ReadAlatScreen> {
   String _selectedCategory = 'Semua';
 
   List<Alat> _allAlat = [];
+  Map<int, String> _kategoriMap = {};
 
   final List<String> _categories = [
     'Semua',
@@ -28,37 +29,38 @@ class _ReadAlatScreenState extends State<ReadAlatScreen> {
     'Kabel',
   ];
 
-  Map<int, String> _kategoriMap = {};
-
-  final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
-      GlobalKey<RefreshIndicatorState>();
-
-  // Warna utama navy (sama seperti di Daftar Kategori)
   final Color primary = const Color(0xFF2F3A8F);
 
-  @override
-  void initState() {
-    super.initState();
-    _loadKategori();
-    _searchController.addListener(() {
-      setState(
-        () => _searchQuery = _searchController.text.trim().toLowerCase(),
-      );
+ @override
+void initState() {
+  super.initState();
+
+  // 🔥 PAKSA REALTIME CONNECT
+  Supabase.instance.client.realtime.disconnect();
+  Supabase.instance.client.realtime.connect();
+
+  _loadKategori();
+
+  _searchController.addListener(() {
+    setState(() {
+      _searchQuery = _searchController.text.trim().toLowerCase();
     });
-  }
+  });
+}
 
   Future<void> _loadKategori() async {
-    final data = await Supabase.instance.client
-        .from('kategori')
-        .select('id_kategori, nama_kategori');
+  final data = await Supabase.instance.client
+      .from('kategori')
+      .select('id_kategori, nama_kategori');
 
-    setState(() {
-      _kategoriMap = {
-        for (var k in data)
-          k['id_kategori'] as int: k['nama_kategori'] as String,
-      };
-    });
-  }
+  setState(() {
+    _kategoriMap = {
+      for (var k in data)
+        k['id_kategori'] as int: k['nama_kategori'] as String,
+    };
+  });
+}
+
 
   @override
   void dispose() {
@@ -74,33 +76,6 @@ class _ReadAlatScreenState extends State<ReadAlatScreen> {
           _selectedCategory == 'Semua' || kategori == _selectedCategory;
       return matchSearch && matchCategory;
     }).toList();
-  }
-
-  Future<void> _manualRefresh() async {
-    try {
-      final response = await Supabase.instance.client
-          .from('alat')
-          .select(
-            'id_alat, id_kategori, nama_alat, stok, status, gambar, created_at',
-          )
-          .order('created_at', ascending: false);
-
-      setState(() {
-        _allAlat =
-            response.map((map) {
-              final alat = Alat.fromJson(map);
-              alat.namaKategori =
-                  _kategoriMap[alat.idKategori] ?? 'Tidak diketahui';
-              return alat;
-            }).toList();
-      });
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Gagal muat ulang data: $e')));
-      }
-    }
   }
 
   @override
@@ -123,15 +98,13 @@ class _ReadAlatScreenState extends State<ReadAlatScreen> {
             padding: const EdgeInsets.only(right: 12),
             child: GestureDetector(
               onTap: () async {
-                final result = await Navigator.push(
+                await Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (context) => const AlatCreateScreen(),
                   ),
                 );
-                if (result == true) {
-                  await _manualRefresh();
-                }
+                // ❌ Tidak perlu refresh — realtime otomatis
               },
               child: CircleAvatar(
                 backgroundColor: Colors.grey[400],
@@ -144,7 +117,8 @@ class _ReadAlatScreenState extends State<ReadAlatScreen> {
       body: Column(
         children: [
           const SizedBox(height: 10),
-          // Search box — sama persis seperti di kategori
+
+          // Search
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 16),
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -161,9 +135,10 @@ class _ReadAlatScreenState extends State<ReadAlatScreen> {
               ),
             ),
           ),
+
           const SizedBox(height: 12),
 
-          // Filter chips dengan warna navy
+          // Filter kategori
           SizedBox(
             height: 42,
             child: ListView.builder(
@@ -186,22 +161,10 @@ class _ReadAlatScreenState extends State<ReadAlatScreen> {
                       ),
                     ),
                     selected: isSelected,
-                    onSelected: (_) => setState(() => _selectedCategory = cat),
+                    onSelected: (_) =>
+                        setState(() => _selectedCategory = cat),
                     backgroundColor: Colors.white,
-                    selectedColor: primary, // navy saat dipilih
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                      side: BorderSide(
-                        color:
-                            isSelected
-                                ? Colors.transparent
-                                : primary.withOpacity(0.5),
-                      ),
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
+                    selectedColor: primary,
                     showCheckmark: false,
                   ),
                 );
@@ -211,156 +174,86 @@ class _ReadAlatScreenState extends State<ReadAlatScreen> {
 
           const SizedBox(height: 8),
 
+          // ================= REALTIME =================
           Expanded(
-            child: RefreshIndicator(
-              key: _refreshIndicatorKey,
-              onRefresh: _manualRefresh,
-              child: StreamBuilder<List<Map<String, dynamic>>>(
-                stream: Supabase.instance.client
-                    .from('alat')
-                    .stream(primaryKey: ['id_alat'])
-                    .order('created_at', ascending: false),
-                builder: (context, snapshot) {
-                  if (snapshot.hasError) {
-                    return Center(child: Text('Error: ${snapshot.error}'));
-                  }
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
+            child: StreamBuilder<List<Map<String, dynamic>>>(
+              stream: Supabase.instance.client
+                  .from('alat')
+                  .stream(primaryKey: ['id_alat'])
+                  .order('created_at', ascending: false),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                }
 
-                  final data = snapshot.data ?? [];
-                  _allAlat =
-                      data.map((map) {
-                        final alat = Alat.fromJson(map);
-                        alat.namaKategori =
-                            _kategoriMap[alat.idKategori] ?? 'Tidak diketahui';
-                        return alat;
-                      }).toList();
+                if (!snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-                  final filtered = _filteredAlat;
+                final data = snapshot.data!;
 
-                  if (filtered.isEmpty) {
-                    return Center(
-                      child: Text(
-                        _selectedCategory == 'Semua'
-                            ? 'Belum ada data alat'
-                            : 'Tidak ada alat di kategori $_selectedCategory',
-                        style: const TextStyle(
-                          color: Colors.grey,
-                          fontSize: 16,
+                _allAlat = data.map((map) {
+                  final alat = Alat.fromJson(map);
+                  alat.namaKategori =
+                      _kategoriMap[alat.idKategori] ?? 'Tidak diketahui';
+                  return alat;
+                }).toList();
+
+                final filtered = _filteredAlat;
+
+                if (filtered.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      'Belum ada data alat',
+                      style: TextStyle(color: Colors.grey, fontSize: 16),
+                    ),
+                  );
+                }
+
+                return GridView.builder(
+                  padding: const EdgeInsets.all(16),
+                  gridDelegate:
+                      const SliverGridDelegateWithMaxCrossAxisExtent(
+                    maxCrossAxisExtent: 220,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                    childAspectRatio: 0.62,
+                  ),
+                  itemCount: filtered.length,
+                  itemBuilder: (context, index) {
+                    final alat = filtered[index];
+                    return Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: primary, width: 2),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(20),
+                        child: AlatItem(
+                          key: ValueKey(alat.idAlat),
+                          alat: alat,
+                          onEdit: () async {
+                            await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    AlatUpdateScreen(alat: alat),
+                              ),
+                            );
+                            // ❌ tidak perlu refresh
+                          },
+                          onHapus: () async {
+                            await Supabase.instance.client
+                                .from('alat')
+                                .delete()
+                                .eq('id_alat', alat.idAlat);
+                          },
                         ),
                       ),
                     );
-                  }
-
-                  return GridView.builder(
-                    padding: const EdgeInsets.all(16),
-                    gridDelegate:
-                        const SliverGridDelegateWithMaxCrossAxisExtent(
-                          maxCrossAxisExtent: 220,
-                          crossAxisSpacing: 16,
-                          mainAxisSpacing: 16,
-                          childAspectRatio: 0.65,
-                        ),
-                    itemCount: filtered.length,
-                    itemBuilder: (context, index) {
-                      final alat = filtered[index];
-                      return Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: primary, width: 2),
-                          color: Colors.white,
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(20),
-                          child: AlatItem(
-                            key: ValueKey(alat.idAlat),
-                            alat: alat,
-                            onEdit: () async {
-                              if (alat.idAlat == null || alat.idAlat == 0) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('ID alat tidak valid!'),
-                                  ),
-                                );
-                                return;
-                              }
-                              final result = await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder:
-                                      (context) => AlatUpdateScreen(alat: alat),
-                                ),
-                              );
-                              if (result == true) {
-                                await _manualRefresh();
-                              }
-                            },
-                            onHapus: () async {
-                              final confirm = await showDialog<bool>(
-                                context: context,
-                                builder:
-                                    (context) => AlertDialog(
-                                      title: const Text('Hapus Alat'),
-                                      content: const Text(
-                                        'Yakin ingin menghapus alat ini?',
-                                      ),
-                                      actions: [
-                                        TextButton(
-                                          onPressed:
-                                              () =>
-                                                  Navigator.pop(context, false),
-                                          child: Text(
-                                            'Batal',
-                                            style: TextStyle(
-                                              color: Colors.grey[700],
-                                            ),
-                                          ),
-                                        ),
-                                        TextButton(
-                                          onPressed:
-                                              () =>
-                                                  Navigator.pop(context, true),
-                                          child: const Text(
-                                            'Hapus',
-                                            style: TextStyle(color: Colors.red),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                              );
-
-                              if (confirm != true) return;
-
-                              try {
-                                await Supabase.instance.client
-                                    .from('alat')
-                                    .delete()
-                                    .eq('id_alat', alat.idAlat);
-
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Alat berhasil dihapus'),
-                                    backgroundColor: Colors.green,
-                                  ),
-                                );
-                                await _manualRefresh();
-                              } catch (e) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('Gagal hapus: $e'),
-                                    backgroundColor: Colors.red,
-                                  ),
-                                );
-                              }
-                            },
-                          ),
-                        ),
-                      );
-                    },
-                  );
-                },
-              ),
+                  },
+                );
+              },
             ),
           ),
         ],

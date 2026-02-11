@@ -2,7 +2,7 @@ class Peminjaman {
   final int idPeminjaman;
   final String status;
   final DateTime tglPinjam;
-  final DateTime? tglKembali;
+  final DateTime? tglKembali; 
   final String namaPeminjam;
   final List<DetailPeminjaman> detail;
 
@@ -17,21 +17,21 @@ class Peminjaman {
 
   factory Peminjaman.fromJson(Map<String, dynamic> json) {
     return Peminjaman(
-      idPeminjaman: json['id_peminjaman'],
-      status: json['status'],
-      tglPinjam: DateTime.parse(json['tgl_pinjam']),
-      tglKembali: json['tgl_kembali_rencana'] != null
-          ? DateTime.parse(json['tgl_kembali_rencana'])
-          : null,
+      idPeminjaman: json['id_peminjaman'] ?? 0,
+      status: json['status'] ?? '-',
+      tglPinjam: DateTime.tryParse(json['tgl_pinjam'] ?? '') ?? DateTime.now(),
+      tglKembali: DateTime.tryParse(json['tgl_kembali_rencana'] ?? ''),
       namaPeminjam: json['users']?['nama'] ?? '-',
-      detail: (json['detail_peminjaman'] as List? ?? [])
-          .map((e) => DetailPeminjaman.fromJson(e))
-          .toList(),
+      detail: (json['detail_peminjaman'] as List<dynamic>?)
+              ?.map((e) => DetailPeminjaman.fromJson(e))
+              .toList() ??
+          [],
     );
   }
 
-  get tglKembaliRencana => null;
+  DateTime? get tglKembaliRencana => tglKembali;
 }
+
 
 class DetailPeminjaman {
   final int jumlah;
@@ -46,7 +46,7 @@ class DetailPeminjaman {
 
   factory DetailPeminjaman.fromJson(Map<String, dynamic> json) {
     return DetailPeminjaman(
-      jumlah: json['jumlah'],
+      jumlah: json['jumlah'] ?? 0,
       namaAlat: json['alat']?['nama_alat'] ?? '-',
       gambar: json['alat']?['gambar'],
     );

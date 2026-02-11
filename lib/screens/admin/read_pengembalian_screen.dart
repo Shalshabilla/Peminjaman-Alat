@@ -1,9 +1,8 @@
-// lib/screens/admin/read_pengembalian_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../models/pengembalian_model.dart'; // ← buat model ini jika belum ada
+import '../../models/pengembalian_model.dart'; 
+import '../../services/pengembalian_services.dart';
 import '../../widgets/admin_bottom_navbar.dart';
 
 class PengembalianListScreen extends StatefulWidget {
@@ -47,39 +46,25 @@ class _PengembalianListScreenState extends State<PengembalianListScreen> {
   }
 
   Future<void> _loadPengembalian() async {
-    try {
-      final res = await Supabase.instance.client
-    .from('pengembalian')
-    .select('''
-      id_pengembalian,
-      status,
-      tgl_kembali_asli,          
-      denda,
-      peminjaman!pengembalian_id_peminjaman_fkey (     
-        id_peminjaman,                                 
-        users!peminjaman_id_user_fkey ( nama ),
-        detail_peminjaman (
-          jumlah,
-          alat ( nama_alat )
-        )
-      )
-    ''')
-    .order('tgl_kembali_asli', ascending: false);      // sesuaikan order dengan kolom yang ada
+  try {
+    final service = PengembalianService();
+    final data = await service.getAllPengembalian();
 
-      if (mounted) {
-        setState(() {
-          _allPengembalian = res.map((e) => Pengembalian.fromJson(e)).toList();
-        });
-      }
-    } catch (e) {
-      debugPrint('Error loading pengembalian (admin): $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal memuat data: $e')),
-        );
-      }
-    }
+    if (!mounted) return;
+
+    setState(() {
+      _allPengembalian = data;
+    });
+  } catch (e) {
+    debugPrint('Error loading pengembalian: $e');
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Gagal memuat data: $e')),
+    );
   }
+}
 
   List<Pengembalian> get _filtered {
     return _allPengembalian.where((p) {
@@ -199,18 +184,6 @@ class _PengembalianListScreenState extends State<PengembalianListScreen> {
                     const SizedBox(width: 8),
                     Text(
                       'Tanggal Kembali: $tglKembaliFormatted',
-                      style: const TextStyle(fontSize: 14, color: Colors.grey),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-
-                Row(
-                  children: [
-                    const Icon(Icons.security, size: 18, color: Colors.grey),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Kondisi: ${p.kondisiBarang ?? '-'}',
                       style: const TextStyle(fontSize: 14, color: Colors.grey),
                     ),
                   ],

@@ -27,7 +27,7 @@ class PeminjamBottomNavbar extends StatelessWidget {
       child: BottomNavigationBar(
         currentIndex: currentIndex,
         onTap: onTap,
-        backgroundColor: navy,
+        backgroundColor: const Color.fromRGBO(13, 71, 161, 1),
         selectedItemColor: Colors.white,
         unselectedItemColor: Colors.white70,
         selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),

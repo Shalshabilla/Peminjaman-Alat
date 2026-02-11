@@ -4,7 +4,6 @@ import '../../services/kategori_services.dart';
 import 'create_update_kategori_screens.dart';
 import '../../widgets/admin_bottom_navbar.dart';
 
-
 class DaftarKategoriPage extends StatefulWidget {
   const DaftarKategoriPage({super.key});
 
@@ -14,18 +13,30 @@ class DaftarKategoriPage extends StatefulWidget {
 
 class _DaftarKategoriPageState extends State<DaftarKategoriPage> {
   final KategoriService _service = KategoriService();
+  final TextEditingController _searchController = TextEditingController();
   List<Kategori> _kategoriList = [];
   List<Kategori> _filteredList = [];
-  final TextEditingController _searchController = TextEditingController();
   bool _isLoading = true;
 
   final Color primary = const Color(0xFF2F3A8F);
+  late final Stream<List<Map<String, dynamic>>> _kategoriStream;
 
   @override
   void initState() {
     super.initState();
     _fetchKategori();
     _searchController.addListener(_filterKategori);
+
+    // Realtime subscription
+    _kategoriStream = _service.supabase
+        .from('kategori')
+        .stream(primaryKey: ['id_kategori']);
+    _kategoriStream.listen((data) {
+      setState(() {
+        _kategoriList = data.map((e) => Kategori.fromJson(e)).toList();
+        _filterKategori();
+      });
+    });
   }
 
   Future<void> _fetchKategori() async {
@@ -68,8 +79,7 @@ class _DaftarKategoriPageState extends State<DaftarKategoriPage> {
               const SizedBox(height: 10),
               const Text(
                 'Hapus Kategori',
-                style:
-                    TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
               ),
               const SizedBox(height: 8),
               const Text('Anda yakin ingin menghapus kategori?'),
@@ -171,17 +181,16 @@ class _DaftarKategoriPageState extends State<DaftarKategoriPage> {
           Row(
             children: [
               _iconAction(
-  icon: Icons.edit,
-  color: Colors.blue,
-  onTap: () => _showAddEditDialog(kategori: kat),
-),
-const SizedBox(width: 8),
-_iconAction(
-  icon: Icons.delete,
-  color: Colors.red,
-  onTap: () => _showDeleteDialog(kat),
-),
-
+                icon: Icons.edit,
+                color: Colors.blue,
+                onTap: () => _showAddEditDialog(kategori: kat),
+              ),
+              const SizedBox(width: 8),
+              _iconAction(
+                icon: Icons.delete,
+                color: Colors.red,
+                onTap: () => _showDeleteDialog(kat),
+              ),
             ],
           )
         ],
@@ -189,34 +198,32 @@ _iconAction(
     );
   }
 
-Widget _iconAction({
-  required IconData icon,
-  required Color color,
-  required VoidCallback onTap,
-}) {
-  return Container(
-    width: 36,
-    height: 36,
-    decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(10),
-      border: Border.all(color: color, width: 1.8),
-      color: Colors.white,
-    ),
-    child: IconButton(
-      padding: EdgeInsets.zero,
-      iconSize: 18,
-      icon: Icon(icon, color: color),
-      onPressed: onTap,
-    ),
-  );
-}
-
+  Widget _iconAction({
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color, width: 1.8),
+        color: Colors.white,
+      ),
+      child: IconButton(
+        padding: EdgeInsets.zero,
+        iconSize: 18,
+        icon: Icon(icon, color: color),
+        onPressed: onTap,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -241,13 +248,11 @@ Widget _iconAction({
           )
         ],
       ),
-
       body: Column(
         children: [
           const SizedBox(height: 10),
           _searchBox(),
           const SizedBox(height: 10),
-
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
@@ -262,7 +267,8 @@ Widget _iconAction({
           ),
         ],
       ),
-      bottomNavigationBar: AdminBottomNavbar(currentIndex: 1, onTap: (index) {}),
+      bottomNavigationBar:
+          AdminBottomNavbar(currentIndex: 1, onTap: (index) {}),
     );
   }
 

@@ -48,35 +48,45 @@ class _PeminjamanPeminjamScreenState extends State<PeminjamanPeminjamScreen> {
   }
 
   Future<void> _loadPeminjaman() async {
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user == null) return;
+  final user = Supabase.instance.client.auth.currentUser;
+  if (user == null) return;
 
-    try {
-      final res = await Supabase.instance.client
-          .from('peminjaman')
-          .select('''
-            id_peminjaman,
-            status,
-            tgl_pinjam,
-            tgl_kembali_rencana,
-            users ( nama ),
-            detail_peminjaman (
-              jumlah,
-              alat ( nama_alat, gambar )
-            )
-          ''')
-          .eq('id_user', user.id)
-          .order('tgl_pinjam', ascending: false);
+  try {
+    final res = await Supabase.instance.client
+        .from('peminjaman')
+        .select('''
+          id_peminjaman,
+          status,
+          tgl_pinjam,
+          tgl_kembali_rencana,
+          users!peminjaman_id_user_fkey ( nama ),
+          detail_peminjaman (
+            jumlah,
+            alat ( nama_alat, gambar )
+          )
+        ''')
+        .eq('id_user', user.id)
+        .order('tgl_pinjam', ascending: false);
 
-      if (mounted) {
-        setState(() {
-          _allPeminjaman = res.map((e) => Peminjaman.fromJson(e)).toList();
-        });
-      }
-    } catch (e) {
-      debugPrint('Error loading peminjaman: $e');
+    if (mounted) {
+      setState(() {
+        _allPeminjaman = (res as List<dynamic>)
+            .map((e) => Peminjaman.fromJson(e as Map<String, dynamic>))
+            .toList();
+      });
+    }
+  } catch (e, st) {
+    debugPrint('Error loading peminjaman peminjam: $e');
+    debugPrint(st.toString());
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal memuat data: $e')),
+      );
     }
   }
+}
+
+
 
   List<Peminjaman> get _filtered {
     return _allPeminjaman.where((p) {

@@ -52,7 +52,7 @@ class _DashboardPetugasScreenState extends State<DashboardPetugasScreen> {
   void _onNavTap(int index) {
     final routes = [
       '/petugas/dashboard',      // 0
-      '/petugas/pengajuan',      // 1
+      '/petugas/peminjaman',      // 1
       '/petugas/pengembalian',   // 2
       '/petugas/laporan',        // 3
       '/petugas/profil',         // 4

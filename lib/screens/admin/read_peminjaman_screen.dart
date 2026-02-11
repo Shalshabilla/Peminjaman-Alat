@@ -101,17 +101,18 @@ class _PeminjamanListScreenState extends State<PeminjamanListScreen> {
     switch (status.toLowerCase()) {
       case 'menunggu persetujuan':
       case 'menunggu':
-        return Colors.orange;
-      case 'disetujui':
-        return Colors.green;
-      case 'ditolak':
-        return Colors.red;
-      case 'dipinjam':
-        return Colors.blue;
-      case 'dikembalikan':
-        return Colors.grey;
-      case 'terlambat':
-        return Colors.redAccent;
+  return Colors.orange;
+case 'disetujui':
+  return Colors.green;
+case 'ditolak':
+  return Colors.red;
+case 'dipinjam':
+  return Colors.blue;
+case 'dikembalikan':
+  return Colors.grey;
+case 'terlambat':
+  return Colors.redAccent;
+
       default:
         return primary;
     }
@@ -121,13 +122,15 @@ class _PeminjamanListScreenState extends State<PeminjamanListScreen> {
     final alatNama = p.detail.map((e) => e.namaAlat).join(', ');
     final jumlahTotal = p.detail.fold<int>(0, (sum, e) => sum + e.jumlah);
 
-    final tglPinjamFormatted = DateFormat('dd MMM yyyy').format(p.tglPinjam);
-    final tglKembaliStr =
-        p.tglKembali != null
-            ? DateFormat('dd MMM yyyy').format(p.tglKembali!)
-            : (p.tglKembaliRencana != null
-                ? DateFormat('dd MMM yyyy').format(p.tglKembaliRencana!)
-                : '-');
+    final tglPinjamFormatted =
+    DateFormat('dd MMM yyyy').format(p.tglPinjam);
+
+final tglKembaliStr = p.tglKembali != null
+    ? DateFormat('dd MMM yyyy').format(p.tglKembali!)
+    : p.tglKembaliRencana != null
+        ? DateFormat('dd MMM yyyy').format(p.tglKembaliRencana!)
+        : '-';
+
 
     return GestureDetector(
       onTap: () {
